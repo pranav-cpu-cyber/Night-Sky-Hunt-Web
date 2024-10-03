@@ -68,18 +68,6 @@
             margin-bottom: 20px; /* Add some space below the title */
         }
 
-        /* 3D Text Shadow Effect */
-        .title::before {
-            content: 'Night Sky Hunt';
-            position: absolute;
-            top: 0.05em;
-            left: 0.05em;
-            color: rgba(0, 0, 0, 0.7);
-            z-index: -1;
-            transform: translate(3px, 3px);
-            text-shadow: 2px 2px 5px rgba(0,0,0,0.5);
-        }
-
         /* Floating Animation for Title */
         @keyframes float {
             0%, 100% {
@@ -643,8 +631,28 @@
         </div>
     </div>
 
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
     <!-- JavaScript for Functionality -->
     <script>
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCyVBia-bsTSwZSmGrztGGeyGvbk-3vGUM",
+            authDomain: "night-sky-hunt-af24d.firebaseapp.com",
+            databaseURL: "https://night-sky-hunt-af24d-default-rtdb.firebaseio.com",
+            projectId: "night-sky-hunt-af24d",
+            storageBucket: "night-sky-hunt-af24d.appspot.com",
+            messagingSenderId: "649615581460",
+            appId: "1:649615581460:web:13d2c0d15161e1ef43e201",
+            measurementId: "G-YBD7B53TJJ"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
         // Starfield Generation
         const starfield = document.getElementById('starfield');
         const numStars = 200;
@@ -661,11 +669,17 @@
             starfield.appendChild(star);
         }
 
-        // Event Timing
-        let eventStart = localStorage.getItem('eventStart') ? parseInt(localStorage.getItem('eventStart')) : null;
-        let eventEnd = localStorage.getItem('eventEnd') ? parseInt(localStorage.getItem('eventEnd')) : null;
+        // Variables and Data
+        let teams = {};
+        let teamSequences = {};
+        let teamScores = {};
+        let submissionTimes = {};
+        let registrationRequests = {};
+        let eventStart = null;
+        let eventEnd = null;
+        let currentTeam = null;
+        let adminLoggedIn = false;
 
-        // Coordinates for questions
         const coordinates = {
             1: [9.52, 12.81],
             2: [9.22, 11.43],
@@ -689,7 +703,6 @@
             20: [11.52, 8.44]
         };
 
-        // Question Codes
         const questionCodes = {
             1: 3742,
             2: 8169,
@@ -713,54 +726,24 @@
             20: 8023
         };
 
-        // Variables to store team data
-        let teams = JSON.parse(localStorage.getItem('teams')) || {};
-        let teamSequences = JSON.parse(localStorage.getItem('teamSequences')) || {};
-        let teamScores = JSON.parse(localStorage.getItem('teamScores')) || {};
-        let submissionTimes = JSON.parse(localStorage.getItem('submissionTimes')) || {};
-        let currentTeam = null;
-        let adminLoggedIn = false;
-
-        // Additional variables
-        let registrationRequests = JSON.parse(localStorage.getItem('registrationRequests')) || {};
-
-        // Function to open modals
-        function openAddTeamModal() {
-            document.getElementById('addTeamModal').style.display = 'block';
-            initializeMemberInputs();
+        // Fetch Initial Data from Firebase
+        function fetchInitialData() {
+            firebase.database().ref('/').on('value', (snapshot) => {
+                const data = snapshot.val();
+                teams = data?.teams || {};
+                teamSequences = data?.teamSequences || {};
+                teamScores = data?.teamScores || {};
+                submissionTimes = data?.submissionTimes || {};
+                registrationRequests = data?.registrationRequests || {};
+                eventStart = data?.eventStart || null;
+                eventEnd = data?.eventEnd || null;
+            });
         }
 
-        function openStartHuntModal() {
-            document.getElementById('startHuntModal').style.display = 'block';
-        }
+        fetchInitialData();
 
-        function openAdminLoginModal() {
-            document.getElementById('adminLoginModal').style.display = 'block';
-        }
-
-        // Function to close modals
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-            // Clear output messages
-            if (modalId === 'addTeamModal') {
-                document.getElementById('addTeamOutput').textContent = '';
-                document.getElementById('acceptanceCodeInput').value = '';
-                document.getElementById('acceptanceCodeSection').style.display = 'none';
-            } else if (modalId === 'startHuntModal') {
-                document.getElementById('startHuntOutput').textContent = '';
-            } else if (modalId === 'adminLoginModal') {
-                document.getElementById('adminLoginOutput').textContent = '';
-            } else if (modalId === 'adminOptionModal') {
-                document.getElementById('adminOptionContent').textContent = '';
-                document.getElementById('adminOptionTitle').textContent = 'Option Title';
-            } else if (modalId === 'setTimeModal') {
-                document.getElementById('setTimeOutput').textContent = '';
-            } else if (modalId === 'resetModal') {
-                // No additional action needed
-            } else if (modalId === 'registrationRequestModal') {
-                // No additional action needed
-            }
-        }
+        // Function Definitions
+        // [Include all your JavaScript functions here, updated to use Firebase instead of localStorage]
 
         // Initialize member inputs with minimum 2 members
         function initializeMemberInputs() {
@@ -829,80 +812,87 @@
                 return;
             }
 
-            // Check if team name is unique in teams
-            for (let existingTeam in teams) {
-                if (teams[existingTeam].teamName.toLowerCase() === teamName.toLowerCase()) {
-                    outputDiv.textContent = `Team name "${teamName}" is already registered.`;
-                    return;
-                }
-            }
+            // Fetch the latest data
+            firebase.database().ref('/').once('value').then((snapshot) => {
+                const data = snapshot.val();
+                teams = data?.teams || {};
+                registrationRequests = data?.registrationRequests || {};
 
-            // Check if team name exists in registrationRequests
-            if (registrationRequests[teamName]) {
-                const request = registrationRequests[teamName];
-                if (request.status === 'pending') {
-                    outputDiv.textContent = 'Not approved by the admin.';
-                } else if (request.status === 'approved') {
-                    // Ask for acceptance code
-                    document.getElementById('acceptanceCodeSection').style.display = 'block';
-                    if (acceptanceCodeInput.value.trim() === '') {
-                        outputDiv.textContent = 'Please enter the acceptance code provided by the admin.';
+                // Check if team name is unique in teams
+                for (let existingTeam in teams) {
+                    if (teams[existingTeam].teamName.toLowerCase() === teamName.toLowerCase()) {
+                        outputDiv.textContent = `Team name "${teamName}" is already registered.`;
                         return;
                     }
-                    // Check acceptance code
-                    if (acceptanceCodeInput.value.trim() === request.acceptanceCode) {
-                        // Register the team
-                        const teamId = 'T' + new Date().getTime();
-
-                        teams[teamId] = {
-                            teamName,
-                            names,
-                            ids,
-                            teamLeaderEmail,
-                            password,
-                            currentQuestionIndex: 0
-                        };
-
-                        // Generate random question sequence
-                        teamSequences[teamId] = generateRandomSequence(20);
-
-                        // Initialize team score and submission times
-                        teamScores[teamId] = teamScores[teamId] || 0;
-                        submissionTimes[teamId] = submissionTimes[teamId] || null;
-
-                        // Save to localStorage
-                        localStorage.setItem('teams', JSON.stringify(teams));
-                        localStorage.setItem('teamSequences', JSON.stringify(teamSequences));
-                        localStorage.setItem('teamScores', JSON.stringify(teamScores));
-                        localStorage.setItem('submissionTimes', JSON.stringify(submissionTimes));
-
-                        // Remove from registrationRequests
-                        delete registrationRequests[teamName];
-                        localStorage.setItem('registrationRequests', JSON.stringify(registrationRequests));
-
-                        outputDiv.textContent = 'Team registered successfully!';
-                        document.getElementById('teamForm').reset();
-                        initializeMemberInputs();
-                        document.getElementById('acceptanceCodeSection').style.display = 'none';
-                    } else {
-                        outputDiv.textContent = 'Invalid acceptance code.';
-                    }
                 }
-            } else {
-                // Submit registration request
-                registrationRequests[teamName] = {
-                    teamName,
-                    names,
-                    ids,
-                    teamLeaderEmail,
-                    password,
-                    status: 'pending'
-                };
-                localStorage.setItem('registrationRequests', JSON.stringify(registrationRequests));
-                outputDiv.textContent = 'Registration request submitted. Please wait for admin approval.';
-                document.getElementById('teamForm').reset();
-                initializeMemberInputs();
-            }
+
+                // Check if team name exists in registrationRequests
+                if (registrationRequests[teamName]) {
+                    const request = registrationRequests[teamName];
+                    if (request.status === 'pending') {
+                        outputDiv.textContent = 'Not approved by the admin.';
+                    } else if (request.status === 'approved') {
+                        // Ask for acceptance code
+                        document.getElementById('acceptanceCodeSection').style.display = 'block';
+                        if (acceptanceCodeInput.value.trim() === '') {
+                            outputDiv.textContent = 'Please enter the acceptance code provided by the admin.';
+                            return;
+                        }
+                        // Check acceptance code
+                        if (acceptanceCodeInput.value.trim() === request.acceptanceCode) {
+                            // Register the team
+                            const teamId = 'T' + new Date().getTime();
+
+                            teams[teamId] = {
+                                teamName,
+                                names,
+                                ids,
+                                teamLeaderEmail,
+                                password,
+                                currentQuestionIndex: 0
+                            };
+
+                            // Generate random question sequence
+                            teamSequences[teamId] = generateRandomSequence(20);
+
+                            // Initialize team score and submission times
+                            teamScores[teamId] = 0;
+                            submissionTimes[teamId] = null;
+
+                            // Update Firebase
+                            firebase.database().ref('/teams').set(teams);
+                            firebase.database().ref('/teamSequences').set(teamSequences);
+                            firebase.database().ref('/teamScores').set(teamScores);
+                            firebase.database().ref('/submissionTimes').set(submissionTimes);
+
+                            // Remove from registrationRequests
+                            delete registrationRequests[teamName];
+                            firebase.database().ref('/registrationRequests').set(registrationRequests);
+
+                            outputDiv.textContent = 'Team registered successfully!';
+                            document.getElementById('teamForm').reset();
+                            initializeMemberInputs();
+                            document.getElementById('acceptanceCodeSection').style.display = 'none';
+                        } else {
+                            outputDiv.textContent = 'Invalid acceptance code.';
+                        }
+                    }
+                } else {
+                    // Submit registration request
+                    registrationRequests[teamName] = {
+                        teamName,
+                        names,
+                        ids,
+                        teamLeaderEmail,
+                        password,
+                        status: 'pending'
+                    };
+                    firebase.database().ref('/registrationRequests').set(registrationRequests);
+                    outputDiv.textContent = 'Registration request submitted. Please wait for admin approval.';
+                    document.getElementById('teamForm').reset();
+                    initializeMemberInputs();
+                }
+            });
         }
 
         // Generate random sequence
@@ -921,60 +911,65 @@
             const password = document.getElementById('teamPasswordLogin').value.trim();
             const outputDiv = document.getElementById('startHuntOutput');
 
-            // Find team by team name
-            let found = false;
-            let teamIdFound = null;
-            for (let teamId in teams) {
-                if (teams[teamId].teamName.toLowerCase() === teamName.toLowerCase() && teams[teamId].password === password) {
-                    found = true;
-                    teamIdFound = teamId;
-                    break;
+            // Fetch the latest data
+            firebase.database().ref('/teams').once('value').then((snapshot) => {
+                teams = snapshot.val() || {};
+                // Find team by team name
+                let found = false;
+                let teamIdFound = null;
+                for (let teamId in teams) {
+                    if (teams[teamId].teamName.toLowerCase() === teamName.toLowerCase() && teams[teamId].password === password) {
+                        found = true;
+                        teamIdFound = teamId;
+                        break;
+                    }
                 }
-            }
 
-            if (found) {
-                currentTeam = teamIdFound;
-                outputDiv.textContent = 'Login successful!';
-                document.getElementById('startHuntModal').style.display = 'none';
-                document.getElementById('startHuntContainer').style.display = 'block';
-                document.getElementById('buttonContainer').style.display = 'none';
-            } else {
-                outputDiv.textContent = 'Invalid team name or password.';
-            }
+                if (found) {
+                    currentTeam = teamIdFound;
+                    outputDiv.textContent = 'Login successful!';
+                    document.getElementById('startHuntModal').style.display = 'none';
+                    document.getElementById('startHuntContainer').style.display = 'block';
+                    document.getElementById('buttonContainer').style.display = 'none';
+                } else {
+                    outputDiv.textContent = 'Invalid team name or password.';
+                }
+            });
         }
 
         // Start Hunt
         function startHunt() {
-            const status = checkEventStatus();
-            if (status === 'notSet') {
-                alert('Event time not set by admin.');
-                return;
-            }
-            if (status === 'notStarted') {
-                alert('Event not started yet.');
-                return;
-            } else if (status === 'ended') {
-                alert('Event has ended.');
-                return;
-            }
+            checkEventStatus().then((status) => {
+                if (status === 'notSet') {
+                    alert('Event time not set by admin.');
+                    return;
+                }
+                if (status === 'notStarted') {
+                    alert('Event not started yet.');
+                    return;
+                } else if (status === 'ended') {
+                    alert('Event has ended.');
+                    return;
+                }
 
-            document.getElementById('startHuntContainer').style.display = 'none';
-            document.getElementById('coordinateFinder').style.display = 'block';
+                document.getElementById('startHuntContainer').style.display = 'none';
+                document.getElementById('coordinateFinder').style.display = 'block';
 
-            const sequence = teamSequences[currentTeam];
-            const currentIndex = teams[currentTeam].currentQuestionIndex;
+                const sequence = teamSequences[currentTeam];
+                const currentIndex = teams[currentTeam].currentQuestionIndex;
 
-            if (currentIndex < sequence.length) {
-                const currentQuestionNumber = sequence[currentIndex];
-                const [x, y] = coordinates[currentQuestionNumber];
-                document.getElementById('coordinateDisplay').textContent = `Your coordinates are: (${x}, ${y})`;
-            } else {
-                document.getElementById('coordinateDisplay').textContent = '';
-                alert("Congratulations! You have completed all questions!");
-            }
+                if (currentIndex < sequence.length) {
+                    const currentQuestionNumber = sequence[currentIndex];
+                    const [x, y] = coordinates[currentQuestionNumber];
+                    document.getElementById('coordinateDisplay').textContent = `Your coordinates are: (${x}, ${y})`;
+                } else {
+                    document.getElementById('coordinateDisplay').textContent = '';
+                    alert("Congratulations! You have completed all questions!");
+                }
 
-            // Display current score
-            document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScores[currentTeam]} points`;
+                // Display current score
+                document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScores[currentTeam]} points`;
+            });
         }
 
         // Team Logout
@@ -996,81 +991,82 @@
                 return;
             }
 
-            const status = checkEventStatus();
-            if (status === 'notSet') {
-                alert('Event time not set by admin.');
-                return;
-            }
-            if (status === 'notStarted') {
-                alert("Event not started yet.");
-                return;
-            } else if (status === 'ended') {
-                alert("Sorry, the event has ended.");
-                document.getElementById('coordinateFinder').style.display = 'none';
-                alert("Event has ended.");
-                return;
-            }
-
-            const input = document.getElementById('codeInput').value.trim();
-            const outputDiv = document.getElementById('output');
-
-            // Input validation
-            if (!/^\d{6}$/.test(input)) {
-                outputDiv.textContent = "Please enter a valid 6-digit code.";
-                return;
-            }
-
-            const currentQuestionCode = parseInt(input.slice(2), 10);
-
-            // Get the current question number from code
-            let currentQuestionNumber = null;
-            for (const [qNum, qCode] of Object.entries(questionCodes)) {
-                if (qCode === currentQuestionCode) {
-                    currentQuestionNumber = parseInt(qNum, 10);
-                    break;
+            checkEventStatus().then((status) => {
+                if (status === 'notSet') {
+                    alert('Event time not set by admin.');
+                    return;
                 }
-            }
+                if (status === 'notStarted') {
+                    alert("Event not started yet.");
+                    return;
+                } else if (status === 'ended') {
+                    alert("Sorry, the event has ended.");
+                    document.getElementById('coordinateFinder').style.display = 'none';
+                    alert("Event has ended.");
+                    return;
+                }
 
-            if (!currentQuestionNumber) {
-                outputDiv.textContent = "Invalid question code.";
-                return;
-            }
+                const input = document.getElementById('codeInput').value.trim();
+                const outputDiv = document.getElementById('output');
 
-            const sequence = teamSequences[currentTeam];
-            const currentIndex = teams[currentTeam].currentQuestionIndex;
+                // Input validation
+                if (!/^\d{6}$/.test(input)) {
+                    outputDiv.textContent = "Please enter a valid 6-digit code.";
+                    return;
+                }
 
-            // Check if the code corresponds to the expected question
-            if (sequence[currentIndex] !== currentQuestionNumber) {
-                outputDiv.textContent = "Incorrect code. Please try again.";
-                return;
-            }
+                const currentQuestionCode = parseInt(input.slice(2), 10);
 
-            // Update team's progress
-            teams[currentTeam].currentQuestionIndex++;
-            teamScores[currentTeam] += 5;
-            submissionTimes[currentTeam] = new Date().toLocaleString();
+                // Get the current question number from code
+                let currentQuestionNumber = null;
+                for (const [qNum, qCode] of Object.entries(questionCodes)) {
+                    if (qCode === currentQuestionCode) {
+                        currentQuestionNumber = parseInt(qNum, 10);
+                        break;
+                    }
+                }
 
-            // Save to localStorage
-            localStorage.setItem('teams', JSON.stringify(teams));
-            localStorage.setItem('teamScores', JSON.stringify(teamScores));
-            localStorage.setItem('submissionTimes', JSON.stringify(submissionTimes));
+                if (!currentQuestionNumber) {
+                    outputDiv.textContent = "Invalid question code.";
+                    return;
+                }
 
-            // Display current score
-            document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScores[currentTeam]} points`;
+                const sequence = teamSequences[currentTeam];
+                const currentIndex = teams[currentTeam].currentQuestionIndex;
 
-            // Provide next coordinate
-            if (teams[currentTeam].currentQuestionIndex < sequence.length) {
-                const nextQuestionNumber = sequence[teams[currentTeam].currentQuestionIndex];
-                const [x, y] = coordinates[nextQuestionNumber];
-                outputDiv.textContent = `Correct! The coordinates of your next question are: (${x}, ${y})`;
-                document.getElementById('coordinateDisplay').textContent = '';
-            } else {
-                outputDiv.textContent = "Congratulations! You have completed all questions!";
-                document.getElementById('coordinateDisplay').textContent = '';
-            }
+                // Check if the code corresponds to the expected question
+                if (sequence[currentIndex] !== currentQuestionNumber) {
+                    outputDiv.textContent = "Incorrect code. Please try again.";
+                    return;
+                }
 
-            // Clear input
-            document.getElementById('codeInput').value = '';
+                // Update team's progress
+                teams[currentTeam].currentQuestionIndex++;
+                teamScores[currentTeam] += 5;
+                submissionTimes[currentTeam] = new Date().toLocaleString();
+
+                // Update Firebase
+                firebase.database().ref('/teams').set(teams);
+                firebase.database().ref('/teamScores').set(teamScores);
+                firebase.database().ref('/submissionTimes').set(submissionTimes);
+
+                // Display current score
+                document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScores[currentTeam]} points`;
+
+                // Provide next coordinate
+                if (teams[currentTeam].currentQuestionIndex < sequence.length) {
+                    const nextQuestionNumber = sequence[teams[currentTeam].currentQuestionIndex];
+                    const [x, y] = coordinates[nextQuestionNumber];
+                    outputDiv.textContent = `Correct! The coordinates of your next question are: (${x}, ${y})`;
+                    document.getElementById('coordinateDisplay').textContent = '';
+                } else {
+                    outputDiv.textContent = "Congratulations! You have completed all questions!";
+                    document.getElementById('coordinateDisplay').textContent = '';
+                }
+
+                // Clear input
+                document.getElementById('codeInput').value = '';
+            });
         }
 
         // Admin Login
@@ -1107,25 +1103,31 @@
             const adminOptionContent = document.getElementById('adminOptionContent');
             const adminOptionModal = document.getElementById('adminOptionModal');
 
-            let leaderboard = [];
+            firebase.database().ref('/').once('value').then((snapshot) => {
+                const data = snapshot.val();
+                teams = data?.teams || {};
+                teamScores = data?.teamScores || {};
 
-            for (let teamId in teamScores) {
-                leaderboard.push({
-                    teamId,
-                    score: teamScores[teamId]
+                let leaderboard = [];
+
+                for (let teamId in teamScores) {
+                    leaderboard.push({
+                        teamId,
+                        score: teamScores[teamId]
+                    });
+                }
+
+                leaderboard.sort((a, b) => b.score - a.score);
+
+                let output = 'Leaderboard:\n\n';
+                leaderboard.forEach((entry, index) => {
+                    output += `${index + 1}. ${teams[entry.teamId].teamName} (${entry.teamId}) - ${entry.score} points\n`;
                 });
-            }
 
-            leaderboard.sort((a, b) => b.score - a.score);
-
-            let output = 'Leaderboard:\n\n';
-            leaderboard.forEach((entry, index) => {
-                output += `${index + 1}. ${teams[entry.teamId].teamName} (${entry.teamId}) - ${entry.score} points\n`;
+                adminOptionTitle.textContent = 'Leaderboard';
+                adminOptionContent.textContent = output;
+                adminOptionModal.style.display = 'block';
             });
-
-            adminOptionTitle.textContent = 'Leaderboard';
-            adminOptionContent.textContent = output;
-            adminOptionModal.style.display = 'block';
         }
 
         // Show Team Sequences
@@ -1135,15 +1137,21 @@
             const adminOptionContent = document.getElementById('adminOptionContent');
             const adminOptionModal = document.getElementById('adminOptionModal');
 
-            let output = 'Team Question Sequences:\n\n';
+            firebase.database().ref('/').once('value').then((snapshot) => {
+                const data = snapshot.val();
+                teams = data?.teams || {};
+                teamSequences = data?.teamSequences || {};
 
-            for (let teamId in teamSequences) {
-                output += `${teams[teamId].teamName} (${teamId}): ${teamSequences[teamId].join(', ')}\n`;
-            }
+                let output = 'Team Question Sequences:\n\n';
 
-            adminOptionTitle.textContent = 'Team Question Sequences';
-            adminOptionContent.textContent = output;
-            adminOptionModal.style.display = 'block';
+                for (let teamId in teamSequences) {
+                    output += `${teams[teamId].teamName} (${teamId}): ${teamSequences[teamId].join(', ')}\n`;
+                }
+
+                adminOptionTitle.textContent = 'Team Question Sequences';
+                adminOptionContent.textContent = output;
+                adminOptionModal.style.display = 'block';
+            });
         }
 
         // Show Submission Times
@@ -1153,15 +1161,21 @@
             const adminOptionContent = document.getElementById('adminOptionContent');
             const adminOptionModal = document.getElementById('adminOptionModal');
 
-            let output = 'Latest Submission Times:\n\n';
+            firebase.database().ref('/').once('value').then((snapshot) => {
+                const data = snapshot.val();
+                teams = data?.teams || {};
+                submissionTimes = data?.submissionTimes || {};
 
-            for (let teamId in submissionTimes) {
-                output += `${teams[teamId].teamName} (${teamId}): ${submissionTimes[teamId] || 'No submissions yet'}\n`;
-            }
+                let output = 'Latest Submission Times:\n\n';
 
-            adminOptionTitle.textContent = 'Submission Times';
-            adminOptionContent.textContent = output;
-            adminOptionModal.style.display = 'block';
+                for (let teamId in submissionTimes) {
+                    output += `${teams[teamId].teamName} (${teamId}): ${submissionTimes[teamId] || 'No submissions yet'}\n`;
+                }
+
+                adminOptionTitle.textContent = 'Submission Times';
+                adminOptionContent.textContent = output;
+                adminOptionModal.style.display = 'block';
+            });
         }
 
         // Reset Event
@@ -1177,17 +1191,18 @@
 
         // Confirm Reset Event
         function confirmResetEvent() {
-            localStorage.clear();
-            teams = {};
-            teamSequences = {};
-            teamScores = {};
-            submissionTimes = {};
-            registrationRequests = {};
-            eventStart = null;
-            eventEnd = null;
-            closeModal('resetModal');
-            alert('Event has been reset.');
-            adminLogout();
+            firebase.database().ref('/').set(null).then(() => {
+                teams = {};
+                teamSequences = {};
+                teamScores = {};
+                submissionTimes = {};
+                registrationRequests = {};
+                eventStart = null;
+                eventEnd = null;
+                closeModal('resetModal');
+                alert('Event has been reset.');
+                adminLogout();
+            });
         }
 
         // Open Set Time Modal
@@ -1215,8 +1230,8 @@
                 return;
             }
 
-            localStorage.setItem('eventStart', eventStart);
-            localStorage.setItem('eventEnd', eventEnd);
+            firebase.database().ref('/eventStart').set(eventStart);
+            firebase.database().ref('/eventEnd').set(eventEnd);
 
             outputDiv.textContent = 'Event time has been set successfully!';
         }
@@ -1258,17 +1273,22 @@
 
         // Event Timing Control
         function checkEventStatus() {
-            const now = new Date().getTime();
-            if (!eventStart || !eventEnd) {
-                return 'notSet';
-            }
-            if (now < eventStart) {
-                return 'notStarted';
-            } else if (now > eventEnd) {
-                return 'ended';
-            } else {
-                return 'ongoing';
-            }
+            return firebase.database().ref('/').once('value').then((snapshot) => {
+                const data = snapshot.val();
+                eventStart = data?.eventStart || null;
+                eventEnd = data?.eventEnd || null;
+                const now = new Date().getTime();
+                if (!eventStart || !eventEnd) {
+                    return 'notSet';
+                }
+                if (now < eventStart) {
+                    return 'notStarted';
+                } else if (now > eventEnd) {
+                    return 'ended';
+                } else {
+                    return 'ongoing';
+                }
+            });
         }
 
         // Open Registration Requests Modal
@@ -1283,33 +1303,37 @@
             const requestsDiv = document.getElementById('registrationRequestsContent');
             requestsDiv.innerHTML = '';
 
-            for (let teamName in registrationRequests) {
-                const request = registrationRequests[teamName];
-                const requestDiv = document.createElement('div');
-                requestDiv.className = 'registration-request';
+            firebase.database().ref('/registrationRequests').once('value').then((snapshot) => {
+                registrationRequests = snapshot.val() || {};
 
-                const teamInfo = document.createElement('span');
-                teamInfo.textContent = `Team: ${teamName}, Members: ${request.names.join(', ')}`;
+                for (let teamName in registrationRequests) {
+                    const request = registrationRequests[teamName];
+                    const requestDiv = document.createElement('div');
+                    requestDiv.className = 'registration-request';
 
-                if (request.status === 'pending') {
-                    const acceptButton = document.createElement('button');
-                    acceptButton.textContent = 'Approve';
-                    acceptButton.onclick = () => acceptRegistrationRequest(teamName, acceptButton);
-                    requestDiv.appendChild(teamInfo);
-                    requestDiv.appendChild(acceptButton);
-                } else if (request.status === 'approved') {
-                    const codeSpan = document.createElement('span');
-                    codeSpan.innerHTML = `Acceptance Code: <span class="acceptance-code">${request.acceptanceCode}</span>`;
-                    requestDiv.appendChild(teamInfo);
-                    requestDiv.appendChild(codeSpan);
+                    const teamInfo = document.createElement('span');
+                    teamInfo.textContent = `Team: ${teamName}, Members: ${request.names.join(', ')}`;
+
+                    if (request.status === 'pending') {
+                        const acceptButton = document.createElement('button');
+                        acceptButton.textContent = 'Approve';
+                        acceptButton.onclick = () => acceptRegistrationRequest(teamName, acceptButton);
+                        requestDiv.appendChild(teamInfo);
+                        requestDiv.appendChild(acceptButton);
+                    } else if (request.status === 'approved') {
+                        const codeSpan = document.createElement('span');
+                        codeSpan.innerHTML = `Acceptance Code: <span class="acceptance-code">${request.acceptanceCode}</span>`;
+                        requestDiv.appendChild(teamInfo);
+                        requestDiv.appendChild(codeSpan);
+                    }
+
+                    requestsDiv.appendChild(requestDiv);
                 }
 
-                requestsDiv.appendChild(requestDiv);
-            }
-
-            if (Object.keys(registrationRequests).length === 0) {
-                requestsDiv.textContent = 'No registration requests.';
-            }
+                if (Object.keys(registrationRequests).length === 0) {
+                    requestsDiv.textContent = 'No registration requests.';
+                }
+            });
         }
 
         // Accept Registration Request
@@ -1317,7 +1341,7 @@
             const code = generateAcceptanceCode();
             registrationRequests[teamName].status = 'approved';
             registrationRequests[teamName].acceptanceCode = code;
-            localStorage.setItem('registrationRequests', JSON.stringify(registrationRequests));
+            firebase.database().ref('/registrationRequests').set(registrationRequests);
 
             // Update the UI
             const codeSpan = document.createElement('span');
@@ -1338,17 +1362,56 @@
 
         // Handle event end
         function handleEventEnd() {
-            const status = checkEventStatus();
-            if (status === 'ended') {
-                if (currentTeam) {
-                    alert("Event has ended.");
-                    teamLogout();
+            checkEventStatus().then((status) => {
+                if (status === 'ended') {
+                    if (currentTeam) {
+                        alert("Event has ended.");
+                        teamLogout();
+                    }
                 }
-            }
+            });
         }
 
         // Set interval to check event status every minute
         setInterval(handleEventEnd, 60000);
+
+        // Function to open modals
+        function openAddTeamModal() {
+            document.getElementById('addTeamModal').style.display = 'block';
+            initializeMemberInputs();
+        }
+
+        function openStartHuntModal() {
+            document.getElementById('startHuntModal').style.display = 'block';
+        }
+
+        function openAdminLoginModal() {
+            document.getElementById('adminLoginModal').style.display = 'block';
+        }
+
+        // Function to close modals
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            // Clear output messages
+            if (modalId === 'addTeamModal') {
+                document.getElementById('addTeamOutput').textContent = '';
+                document.getElementById('acceptanceCodeInput').value = '';
+                document.getElementById('acceptanceCodeSection').style.display = 'none';
+            } else if (modalId === 'startHuntModal') {
+                document.getElementById('startHuntOutput').textContent = '';
+            } else if (modalId === 'adminLoginModal') {
+                document.getElementById('adminLoginOutput').textContent = '';
+            } else if (modalId === 'adminOptionModal') {
+                document.getElementById('adminOptionContent').textContent = '';
+                document.getElementById('adminOptionTitle').textContent = 'Option Title';
+            } else if (modalId === 'setTimeModal') {
+                document.getElementById('setTimeOutput').textContent = '';
+            } else if (modalId === 'resetModal') {
+                // No additional action needed
+            } else if (modalId === 'registrationRequestModal') {
+                // No additional action needed
+            }
+        }
 
     </script>
 
