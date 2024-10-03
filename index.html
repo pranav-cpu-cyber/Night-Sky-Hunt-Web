@@ -21,10 +21,10 @@
             min-height: 100vh;
             overflow-x: hidden;
             position: relative;
-            display: flex; /* Use flexbox for centering */
-            flex-direction: column; /* Arrange children vertically */
-            justify-content: center; /* Center content vertically */
-            align-items: center; /* Center content horizontally */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
 
         /* Starfield container */
@@ -56,7 +56,7 @@
 
         /* Title styling with vibrant gradient and 3D effect */
         .title {
-            font-family: 'Orbitron', sans-serif; /* Stylish, futuristic font */
+            font-family: 'Orbitron', sans-serif;
             text-align: center;
             font-size: 3em;
             background: linear-gradient(45deg, #ff8a00, #e52e71, #9b00ff);
@@ -65,7 +65,7 @@
             position: relative;
             display: inline-block;
             animation: float 3s ease-in-out infinite;
-            margin-bottom: 20px; /* Add some space below the title */
+            margin-bottom: 20px;
         }
 
         /* Floating Animation for Title */
@@ -106,14 +106,14 @@
 
         /* Modal styling */
         .modal {
-            display: none; /* Hidden by default */
+            display: none;
             position: fixed;
             z-index: 1000;
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
-            overflow-y: auto; /* Enable scrolling if needed */
+            overflow-y: auto;
             background-color: rgba(0,0,0,0.9);
         }
 
@@ -148,7 +148,8 @@
         .modal-content input[type="text"],
         .modal-content input[type="password"],
         .modal-content input[type="number"],
-        .modal-content input[type="email"] {
+        .modal-content input[type="email"],
+        .modal-content input[type="datetime-local"] {
             width: 100%;
             padding: 15px 20px;
             margin: 10px 0;
@@ -206,7 +207,7 @@
             margin: 20px auto;
             box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(10px);
-            display: none; /* Hidden by default */
+            display: none;
         }
 
         .container button.logout-button {
@@ -223,7 +224,7 @@
             margin: 20px auto;
             box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(10px);
-            display: none; /* Hidden by default */
+            display: none;
         }
 
         .admin-dashboard h2 {
@@ -287,7 +288,8 @@
             .modal-content input[type="text"],
             .modal-content input[type="password"],
             .modal-content input[type="number"],
-            .modal-content input[type="email"] {
+            .modal-content input[type="email"],
+            .modal-content input[type="datetime-local"] {
                 font-size: 1em;
                 padding: 10px 15px;
             }
@@ -299,7 +301,7 @@
 
         /* Floating Admin Option Modals */
         .admin-option-modal {
-            display: none; /* Hidden by default */
+            display: none;
             position: fixed;
             z-index: 1500;
             left: 50%;
@@ -343,7 +345,7 @@
 
         /* Reset Confirmation Modal */
         .reset-modal {
-            display: none; /* Hidden by default */
+            display: none;
             position: fixed;
             z-index: 1600;
             left: 50%;
@@ -396,7 +398,7 @@
 
         /* Set Time Modal */
         .set-time-modal {
-            display: none; /* Hidden by default */
+            display: none;
             position: fixed;
             z-index: 1500;
             left: 50%;
@@ -637,7 +639,6 @@
 
     <!-- JavaScript for Functionality -->
     <script>
-        // Your Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCyVBia-bsTSwZSmGrztGGeyGvbk-3vGUM",
             authDomain: "night-sky-hunt-af24d.firebaseapp.com",
@@ -743,7 +744,6 @@
         fetchInitialData();
 
         // Function Definitions
-        // [Include all your JavaScript functions here, updated to use Firebase instead of localStorage]
 
         // Initialize member inputs with minimum 2 members
         function initializeMemberInputs() {
@@ -768,7 +768,7 @@
 
             const idInput = document.createElement('input');
             idInput.type = 'text';
-            idInput.placeholder = `Member ${i} C-Force ID`;
+            idInput.placeholder = `Member ${i} ID`;
             idInput.required = true;
             idInput.className = 'member-id';
 
@@ -791,8 +791,8 @@
                 return;
             }
             const memberInputs = document.getElementById('memberInputs');
-            memberInputs.removeChild(memberInputs.lastChild); // Remove ID input
-            memberInputs.removeChild(memberInputs.lastChild); // Remove Name input
+            memberInputs.removeChild(memberInputs.lastChild);
+            memberInputs.removeChild(memberInputs.lastChild);
             memberCount--;
         }
 
@@ -806,19 +806,16 @@
             const acceptanceCodeInput = document.getElementById('acceptanceCodeInput');
             const outputDiv = document.getElementById('addTeamOutput');
 
-            // Validation
             if (names.includes('') || ids.includes('') || teamName === '' || password === '' || teamLeaderEmail === '') {
                 outputDiv.textContent = 'Please fill all fields.';
                 return;
             }
 
-            // Fetch the latest data
             firebase.database().ref('/').once('value').then((snapshot) => {
                 const data = snapshot.val();
                 teams = data?.teams || {};
                 registrationRequests = data?.registrationRequests || {};
 
-                // Check if team name is unique in teams
                 for (let existingTeam in teams) {
                     if (teams[existingTeam].teamName.toLowerCase() === teamName.toLowerCase()) {
                         outputDiv.textContent = `Team name "${teamName}" is already registered.`;
@@ -826,21 +823,17 @@
                     }
                 }
 
-                // Check if team name exists in registrationRequests
                 if (registrationRequests[teamName]) {
                     const request = registrationRequests[teamName];
                     if (request.status === 'pending') {
                         outputDiv.textContent = 'Not approved by the admin.';
                     } else if (request.status === 'approved') {
-                        // Ask for acceptance code
                         document.getElementById('acceptanceCodeSection').style.display = 'block';
                         if (acceptanceCodeInput.value.trim() === '') {
                             outputDiv.textContent = 'Please enter the acceptance code provided by the admin.';
                             return;
                         }
-                        // Check acceptance code
                         if (acceptanceCodeInput.value.trim() === request.acceptanceCode) {
-                            // Register the team
                             const teamId = 'T' + new Date().getTime();
 
                             teams[teamId] = {
@@ -852,20 +845,16 @@
                                 currentQuestionIndex: 0
                             };
 
-                            // Generate random question sequence
                             teamSequences[teamId] = generateRandomSequence(20);
 
-                            // Initialize team score and submission times
                             teamScores[teamId] = 0;
                             submissionTimes[teamId] = null;
 
-                            // Update Firebase
                             firebase.database().ref('/teams').set(teams);
                             firebase.database().ref('/teamSequences').set(teamSequences);
                             firebase.database().ref('/teamScores').set(teamScores);
                             firebase.database().ref('/submissionTimes').set(submissionTimes);
 
-                            // Remove from registrationRequests
                             delete registrationRequests[teamName];
                             firebase.database().ref('/registrationRequests').set(registrationRequests);
 
@@ -878,7 +867,6 @@
                         }
                     }
                 } else {
-                    // Submit registration request
                     registrationRequests[teamName] = {
                         teamName,
                         names,
@@ -911,10 +899,8 @@
             const password = document.getElementById('teamPasswordLogin').value.trim();
             const outputDiv = document.getElementById('startHuntOutput');
 
-            // Fetch the latest data
             firebase.database().ref('/teams').once('value').then((snapshot) => {
                 teams = snapshot.val() || {};
-                // Find team by team name
                 let found = false;
                 let teamIdFound = null;
                 for (let teamId in teams) {
@@ -955,20 +941,31 @@
                 document.getElementById('startHuntContainer').style.display = 'none';
                 document.getElementById('coordinateFinder').style.display = 'block';
 
-                const sequence = teamSequences[currentTeam];
-                const currentIndex = teams[currentTeam].currentQuestionIndex;
+                firebase.database().ref('/teamSequences').once('value').then((snapshot) => {
+                    teamSequences = snapshot.val() || {};
 
-                if (currentIndex < sequence.length) {
-                    const currentQuestionNumber = sequence[currentIndex];
-                    const [x, y] = coordinates[currentQuestionNumber];
-                    document.getElementById('coordinateDisplay').textContent = `Your coordinates are: (${x}, ${y})`;
-                } else {
-                    document.getElementById('coordinateDisplay').textContent = '';
-                    alert("Congratulations! You have completed all questions!");
-                }
+                    firebase.database().ref('/teams').once('value').then((teamSnapshot) => {
+                        teams = teamSnapshot.val() || {};
 
-                // Display current score
-                document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScores[currentTeam]} points`;
+                        const sequence = teamSequences[currentTeam];
+                        const currentIndex = teams[currentTeam].currentQuestionIndex;
+
+                        if (currentIndex < sequence.length) {
+                            const currentQuestionNumber = sequence[currentIndex];
+                            const [x, y] = coordinates[currentQuestionNumber];
+                            document.getElementById('coordinateDisplay').textContent = `Your coordinates are: (${x}, ${y})`;
+                        } else {
+                            document.getElementById('coordinateDisplay').textContent = '';
+                            alert("Congratulations! You have completed all questions!");
+                        }
+
+                        // Display current score
+                        firebase.database().ref('/teamScores').once('value').then((scoreSnapshot) => {
+                            teamScores = scoreSnapshot.val() || {};
+                            document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScores[currentTeam]} points`;
+                        });
+                    });
+                });
             });
         }
 
@@ -1009,7 +1006,6 @@
                 const input = document.getElementById('codeInput').value.trim();
                 const outputDiv = document.getElementById('output');
 
-                // Input validation
                 if (!/^\d{6}$/.test(input)) {
                     outputDiv.textContent = "Please enter a valid 6-digit code.";
                     return;
@@ -1017,7 +1013,6 @@
 
                 const currentQuestionCode = parseInt(input.slice(2), 10);
 
-                // Get the current question number from code
                 let currentQuestionNumber = null;
                 for (const [qNum, qCode] of Object.entries(questionCodes)) {
                     if (qCode === currentQuestionCode) {
@@ -1031,41 +1026,46 @@
                     return;
                 }
 
-                const sequence = teamSequences[currentTeam];
-                const currentIndex = teams[currentTeam].currentQuestionIndex;
+                firebase.database().ref('/teamSequences').once('value').then((sequenceSnapshot) => {
+                    teamSequences = sequenceSnapshot.val() || {};
+                    const sequence = teamSequences[currentTeam];
 
-                // Check if the code corresponds to the expected question
-                if (sequence[currentIndex] !== currentQuestionNumber) {
-                    outputDiv.textContent = "Incorrect code. Please try again.";
-                    return;
-                }
+                    firebase.database().ref('/teams').once('value').then((teamSnapshot) => {
+                        teams = teamSnapshot.val() || {};
+                        const currentIndex = teams[currentTeam].currentQuestionIndex;
 
-                // Update team's progress
-                teams[currentTeam].currentQuestionIndex++;
-                teamScores[currentTeam] += 5;
-                submissionTimes[currentTeam] = new Date().toLocaleString();
+                        if (sequence[currentIndex] !== currentQuestionNumber) {
+                            outputDiv.textContent = "Incorrect code. Please try again.";
+                            return;
+                        }
 
-                // Update Firebase
-                firebase.database().ref('/teams').set(teams);
-                firebase.database().ref('/teamScores').set(teamScores);
-                firebase.database().ref('/submissionTimes').set(submissionTimes);
+                        teams[currentTeam].currentQuestionIndex++;
+                        firebase.database().ref(`/teams/${currentTeam}/currentQuestionIndex`).set(teams[currentTeam].currentQuestionIndex);
 
-                // Display current score
-                document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScores[currentTeam]} points`;
+                        firebase.database().ref('/teamScores').once('value').then((scoreSnapshot) => {
+                            teamScores = scoreSnapshot.val() || {};
+                            teamScores[currentTeam] = (teamScores[currentTeam] || 0) + 5;
+                            firebase.database().ref('/teamScores').set(teamScores);
 
-                // Provide next coordinate
-                if (teams[currentTeam].currentQuestionIndex < sequence.length) {
-                    const nextQuestionNumber = sequence[teams[currentTeam].currentQuestionIndex];
-                    const [x, y] = coordinates[nextQuestionNumber];
-                    outputDiv.textContent = `Correct! The coordinates of your next question are: (${x}, ${y})`;
-                    document.getElementById('coordinateDisplay').textContent = '';
-                } else {
-                    outputDiv.textContent = "Congratulations! You have completed all questions!";
-                    document.getElementById('coordinateDisplay').textContent = '';
-                }
+                            submissionTimes[currentTeam] = new Date().toLocaleString();
+                            firebase.database().ref('/submissionTimes').set(submissionTimes);
 
-                // Clear input
-                document.getElementById('codeInput').value = '';
+                            document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScores[currentTeam]} points`;
+
+                            if (teams[currentTeam].currentQuestionIndex < sequence.length) {
+                                const nextQuestionNumber = sequence[teams[currentTeam].currentQuestionIndex];
+                                const [x, y] = coordinates[nextQuestionNumber];
+                                outputDiv.textContent = `Correct! The coordinates of your next question are: (${x}, ${y})`;
+                                document.getElementById('coordinateDisplay').textContent = '';
+                            } else {
+                                outputDiv.textContent = "Congratulations! You have completed all questions!";
+                                document.getElementById('coordinateDisplay').textContent = '';
+                            }
+
+                            document.getElementById('codeInput').value = '';
+                        });
+                    });
+                });
             });
         }
 
