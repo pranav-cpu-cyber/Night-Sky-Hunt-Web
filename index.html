@@ -740,6 +740,10 @@
                 registrationRequests = data?.registrationRequests || {};
                 eventStart = data?.eventStart ? parseInt(data.eventStart, 10) : null;
                 eventEnd = data?.eventEnd ? parseInt(data.eventEnd, 10) : null;
+                // Convert teamSequences objects back to arrays
+                for (let teamId in teamSequences) {
+                    teamSequences[teamId] = Object.values(teamSequences[teamId]);
+                }
 
                 if (currentTeam && teams[currentTeam]) {
                     setupTeamInterface();
@@ -1412,7 +1416,12 @@
                 const j = Math.floor(Math.random() * (i + 1));
                 [array[i], array[j]] = [array[j], array[i]];
             }
-            return array;
+            // Convert array to object before saving to Firebase
+            const sequenceObject = {};
+            array.forEach((value, index) => {
+                sequenceObject[index] = value;
+            });
+            return sequenceObject;
         }
 
         // Handle event end
