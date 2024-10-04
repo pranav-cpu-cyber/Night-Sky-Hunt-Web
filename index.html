@@ -804,6 +804,16 @@
             memberCount--;
         }
 
+        // Generate random sequence
+        function generateRandomSequence(n) {
+            const array = Array.from({length: n}, (_, index) => index + 1);
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
         // Register Team
         function registerTeam() {
             const names = Array.from(document.getElementsByClassName('member-name')).map(input => input.value.trim());
@@ -889,16 +899,6 @@
                     initializeMemberInputs();
                 }
             });
-        }
-
-        // Generate random sequence
-        function generateRandomSequence(n) {
-            const array = Array.from({length: n}, (_, index) => index + 1);
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
         }
 
         // Team Login
