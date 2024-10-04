@@ -858,19 +858,20 @@
                             teamScores[teamId] = 0;
                             submissionTimes[teamId] = null;
 
-                            firebase.database().ref('/teams/' + teamId).set(teams[teamId]);
-                            firebase.database().ref('/teamSequences/' + teamId).set(teamSequences[teamId]);
-                            firebase.database().ref('/teamScores/' + teamId).set(teamScores[teamId]);
-                            firebase.database().ref('/submissionTimes/' + teamId).set(submissionTimes[teamId]);
+                            firebase.database().ref('/teams/' + teamId).set(teams[teamId]).then(() => {
+                                firebase.database().ref('/teamSequences/' + teamId).set(teamSequences[teamId]);
+                                firebase.database().ref('/teamScores/' + teamId).set(teamScores[teamId]);
+                                firebase.database().ref('/submissionTimes/' + teamId).set(submissionTimes[teamId]);
 
-                            delete registrationRequests[teamName];
-                            firebase.database().ref('/registrationRequests/' + teamName).remove();
+                                delete registrationRequests[teamName];
+                                firebase.database().ref('/registrationRequests/' + teamName).remove();
 
-                            outputDiv.textContent = 'You have registered successfully!';
-                            document.getElementById('teamForm').reset();
-                            initializeMemberInputs();
-                            document.getElementById('acceptanceCodeSection').style.display = 'none';
-                            displayRegistrationRequests();
+                                outputDiv.textContent = 'You have registered successfully!';
+                                document.getElementById('teamForm').reset();
+                                initializeMemberInputs();
+                                document.getElementById('acceptanceCodeSection').style.display = 'none';
+                                displayRegistrationRequests();
+                            });
                         } else {
                             outputDiv.textContent = 'Invalid acceptance code.';
                         }
@@ -940,24 +941,26 @@
 
         // Setup Team Interface
         function setupTeamInterface() {
-            document.getElementById('coordinateFinder').style.display = 'block';
-            document.getElementById('startHuntContainer').style.display = 'none';
-            document.getElementById('buttonContainer').style.display = 'none';
+            firebase.database().ref('/teamSequences/' + currentTeam).once('value').then((snapshot) => {
+                teamSequences[currentTeam] = snapshot.val() || [];
+                document.getElementById('coordinateFinder').style.display = 'block';
+                document.getElementById('startHuntContainer').style.display = 'none';
+                document.getElementById('buttonContainer').style.display = 'none';
 
-            const sequence = teamSequences[currentTeam];
-            let currentIndex = teams[currentTeam].currentQuestionIndex || 0;
+                let currentIndex = teams[currentTeam].currentQuestionIndex || 0;
 
-            if (currentIndex < sequence.length) {
-                const currentQuestionNumber = sequence[currentIndex];
-                const [x, y] = coordinates[currentQuestionNumber];
-                document.getElementById('coordinateDisplay').textContent = `Your coordinates are: (${x}, ${y})`;
-            } else {
-                document.getElementById('coordinateDisplay').textContent = '';
-                alert("Congratulations! You have completed all questions!");
-            }
+                if (currentIndex < teamSequences[currentTeam].length) {
+                    const currentQuestionNumber = teamSequences[currentTeam][currentIndex];
+                    const [x, y] = coordinates[currentQuestionNumber];
+                    document.getElementById('coordinateDisplay').textContent = `Your coordinates are: (${x}, ${y})`;
+                } else {
+                    document.getElementById('coordinateDisplay').textContent = '';
+                    alert("Congratulations! You have completed all questions!");
+                }
 
-            const teamScore = teamScores[currentTeam] || 0;
-            document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScore} points`;
+                const teamScore = teamScores[currentTeam] || 0;
+                document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScore} points`;
+            });
         }
 
         // Start Hunt
@@ -978,29 +981,30 @@
                 document.getElementById('startHuntContainer').style.display = 'none';
                 document.getElementById('coordinateFinder').style.display = 'block';
 
-                let currentIndex = teams[currentTeam].currentQuestionIndex;
-                if (currentIndex === undefined || currentIndex === null) {
-                    currentIndex = 0;
-                    firebase.database().ref('/teams/' + currentTeam + '/currentQuestionIndex').set(currentIndex);
-                }
+                firebase.database().ref('/teamSequences/' + currentTeam).once('value').then((snapshot) => {
+                    teamSequences[currentTeam] = snapshot.val() || [];
+                    let currentIndex = teams[currentTeam].currentQuestionIndex;
+                    if (currentIndex === undefined || currentIndex === null) {
+                        currentIndex = 0;
+                        firebase.database().ref('/teams/' + currentTeam + '/currentQuestionIndex').set(currentIndex);
+                    }
 
-                const sequence = teamSequences[currentTeam];
+                    if (currentIndex < teamSequences[currentTeam].length) {
+                        const currentQuestionNumber = teamSequences[currentTeam][currentIndex];
+                        const [x, y] = coordinates[currentQuestionNumber];
+                        document.getElementById('coordinateDisplay').textContent = `Your coordinates are: (${x}, ${y})`;
+                    } else {
+                        document.getElementById('coordinateDisplay').textContent = '';
+                        alert("Congratulations! You have completed all questions!");
+                    }
 
-                if (currentIndex < sequence.length) {
-                    const currentQuestionNumber = sequence[currentIndex];
-                    const [x, y] = coordinates[currentQuestionNumber];
-                    document.getElementById('coordinateDisplay').textContent = `Your coordinates are: (${x}, ${y})`;
-                } else {
-                    document.getElementById('coordinateDisplay').textContent = '';
-                    alert("Congratulations! You have completed all questions!");
-                }
+                    firebase.database().ref('/teamScores/' + currentTeam).once('value').then((scoreSnapshot) => {
+                        const teamScore = scoreSnapshot.val() || 0;
+                        document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScore} points`;
+                    });
 
-                firebase.database().ref('/teamScores/' + currentTeam).once('value').then((scoreSnapshot) => {
-                    const teamScore = scoreSnapshot.val() || 0;
-                    document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScore} points`;
+                    teams[currentTeam].currentQuestionIndex = currentIndex;
                 });
-
-                teams[currentTeam].currentQuestionIndex = currentIndex;
             });
         }
 
@@ -1096,7 +1100,7 @@
                     const nextQuestionNumber = sequence[currentIndex];
                     const [x, y] = coordinates[nextQuestionNumber];
                     outputDiv.textContent = `Correct! The coordinates of your next question are: (${x}, ${y})`;
-                    document.getElementById('coordinateDisplay').textContent = '';
+                    document.getElementById('coordinateDisplay').textContent = `Your coordinates are: (${x}, ${y})`;
                 } else {
                     outputDiv.textContent = "Congratulations! You have completed all questions!";
                     document.getElementById('coordinateDisplay').textContent = '';
