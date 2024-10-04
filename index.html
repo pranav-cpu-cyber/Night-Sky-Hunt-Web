@@ -866,10 +866,11 @@
                             delete registrationRequests[teamName];
                             firebase.database().ref('/registrationRequests/' + teamName).remove();
 
-                            outputDiv.textContent = 'Team registered successfully!';
+                            outputDiv.textContent = 'You have registered successfully!';
                             document.getElementById('teamForm').reset();
                             initializeMemberInputs();
                             document.getElementById('acceptanceCodeSection').style.display = 'none';
+                            displayRegistrationRequests();
                         } else {
                             outputDiv.textContent = 'Invalid acceptance code.';
                         }
@@ -1240,6 +1241,8 @@
                 closeModal('resetModal');
                 alert('Event has been reset.');
                 adminLogout();
+                document.getElementById('eventStartInput').value = '';
+                document.getElementById('eventEndInput').value = '';
             });
         }
 
@@ -1255,11 +1258,15 @@
                 if (eventStart) {
                     const eventStartInput = document.getElementById('eventStartInput');
                     eventStartInput.value = new Date(eventStart).toISOString().slice(0,16);
+                } else {
+                    document.getElementById('eventStartInput').value = '';
                 }
 
                 if (eventEnd) {
                     const eventEndInput = document.getElementById('eventEndInput');
                     eventEndInput.value = new Date(eventEnd).toISOString().slice(0,16);
+                } else {
+                    document.getElementById('eventEndInput').value = '';
                 }
             });
         }
