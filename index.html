@@ -620,7 +620,7 @@
     </div>
 
     <!-- Set Time Modal -->
-    <div id="setTimeModal" class="modal">
+    <div id="setTimeModal" class="set-time-modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal('setTimeModal')">&times;</span>
             <h2>Set Event Time</h2>
@@ -744,7 +744,7 @@
                 }
 
                 if (adminLoggedIn) {
-                    // You can update admin dashboard if needed
+                    // You can trigger leaderboard refresh here if needed
                 }
             });
         }
@@ -804,16 +804,6 @@
             memberCount--;
         }
 
-        // Generate random sequence
-        function generateRandomSequence(n) {
-            const array = Array.from({length: n}, (_, index) => index + 1);
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
-        }
-
         // Register Team
         function registerTeam() {
             const names = Array.from(document.getElementsByClassName('member-name')).map(input => input.value.trim());
@@ -844,7 +834,7 @@
                 if (registrationRequests[teamName]) {
                     const request = registrationRequests[teamName];
                     if (request.status === 'pending') {
-                        outputDiv.textContent = 'Not approved by the admin.';
+                        outputDiv.textContent = 'Registration request is already pending approval.';
                     } else if (request.status === 'approved') {
                         document.getElementById('acceptanceCodeSection').style.display = 'block';
                         if (acceptanceCodeInput.value.trim() === '') {
@@ -899,6 +889,16 @@
                     initializeMemberInputs();
                 }
             });
+        }
+
+        // Generate random sequence
+        function generateRandomSequence(n) {
+            const array = Array.from({length: n}, (_, index) => index + 1);
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
         }
 
         // Team Login
@@ -977,13 +977,13 @@
                 document.getElementById('startHuntContainer').style.display = 'none';
                 document.getElementById('coordinateFinder').style.display = 'block';
 
+                const sequence = teamSequences[currentTeam];
                 let currentIndex = teams[currentTeam].currentQuestionIndex;
+
                 if (currentIndex === undefined || currentIndex === null) {
                     currentIndex = 0;
                     firebase.database().ref('/teams/' + currentTeam + '/currentQuestionIndex').set(currentIndex);
                 }
-
-                const sequence = teamSequences[currentTeam];
 
                 if (currentIndex < sequence.length) {
                     const currentQuestionNumber = sequence[currentIndex];
@@ -994,12 +994,11 @@
                     alert("Congratulations! You have completed all questions!");
                 }
 
+                // Display current score
                 firebase.database().ref('/teamScores/' + currentTeam).once('value').then((scoreSnapshot) => {
-                    const teamScore = scoreSnapshot.val() || 0;
-                    document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScore} points`;
+                    teamScores = scoreSnapshot.val() || 0;
+                    document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScores} points`;
                 });
-
-                teams[currentTeam].currentQuestionIndex = currentIndex;
             });
         }
 
@@ -1079,10 +1078,10 @@
 
                 // Update team score
                 firebase.database().ref('/teamScores/' + currentTeam).once('value').then((scoreSnapshot) => {
-                    teamScores[currentTeam] = scoreSnapshot.val() || 0;
-                    teamScores[currentTeam] += 5;
-                    firebase.database().ref('/teamScores/' + currentTeam).set(teamScores[currentTeam]);
-                    document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScores[currentTeam]} points`;
+                    teamScores = scoreSnapshot.val() || 0;
+                    teamScores += 5;
+                    firebase.database().ref('/teamScores/' + currentTeam).set(teamScores);
+                    document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScores} points`;
                 });
 
                 // Update submission time
@@ -1147,11 +1146,10 @@
 
                 let leaderboard = [];
 
-                for (let teamId in teams) {
+                for (let teamId in teamScores) {
                     leaderboard.push({
                         teamId,
-                        teamName: teams[teamId].teamName,
-                        score: teamScores[teamId] || 0
+                        score: teamScores[teamId]
                     });
                 }
 
@@ -1159,7 +1157,7 @@
 
                 let output = 'Leaderboard:\n\n';
                 leaderboard.forEach((entry, index) => {
-                    output += `${index + 1}. ${entry.teamName} (${entry.teamId}) - ${entry.score} points\n`;
+                    output += `${index + 1}. ${teams[entry.teamId]?.teamName || 'Unknown Team'} (${entry.teamId}) - ${entry.score} points\n`;
                 });
 
                 adminOptionTitle.textContent = 'Leaderboard';
@@ -1182,8 +1180,8 @@
 
                 let output = 'Team Question Sequences:\n\n';
 
-                for (let teamId in teams) {
-                    output += `${teams[teamId]?.teamName || 'Unknown Team'} (${teamId}): ${teamSequences[teamId]?.join(', ') || 'No sequence assigned'}\n`;
+                for (let teamId in teamSequences) {
+                    output += `${teams[teamId]?.teamName || 'Unknown Team'} (${teamId}): ${teamSequences[teamId].join(', ')}\n`;
                 }
 
                 adminOptionTitle.textContent = 'Team Question Sequences';
@@ -1206,7 +1204,7 @@
 
                 let output = 'Latest Submission Times:\n\n';
 
-                for (let teamId in teams) {
+                for (let teamId in submissionTimes) {
                     output += `${teams[teamId]?.teamName || 'Unknown Team'} (${teamId}): ${submissionTimes[teamId] || 'No submissions yet'}\n`;
                 }
 
@@ -1247,19 +1245,26 @@
         function openSetTimeModal() {
             if (!adminLoggedIn) return;
             document.getElementById('setTimeModal').style.display = 'block';
+            populateEventTimes();
+        }
+
+        // Populate Event Times if already set
+        function populateEventTimes() {
             firebase.database().ref('/').once('value').then((snapshot) => {
                 const data = snapshot.val();
                 eventStart = data?.eventStart ? parseInt(data.eventStart, 10) : null;
                 eventEnd = data?.eventEnd ? parseInt(data.eventEnd, 10) : null;
 
                 if (eventStart) {
-                    const eventStartInput = document.getElementById('eventStartInput');
-                    eventStartInput.value = new Date(eventStart).toISOString().slice(0,16);
+                    const startDate = new Date(eventStart);
+                    const startInput = document.getElementById('eventStartInput');
+                    startInput.value = startDate.toISOString().slice(0,16);
                 }
 
                 if (eventEnd) {
-                    const eventEndInput = document.getElementById('eventEndInput');
-                    eventEndInput.value = new Date(eventEnd).toISOString().slice(0,16);
+                    const endDate = new Date(eventEnd);
+                    const endInput = document.getElementById('eventEndInput');
+                    endInput.value = endDate.toISOString().slice(0,16);
                 }
             });
         }
@@ -1398,6 +1403,7 @@
                 status: 'approved',
                 acceptanceCode: code
             }).then(() => {
+                // Update the UI
                 const codeSpan = document.createElement('span');
                 codeSpan.innerHTML = `Acceptance Code: <span class="acceptance-code">${code}</span>`;
                 const parentDiv = buttonElement.parentElement;
@@ -1409,7 +1415,7 @@
         // Generate Acceptance Code
         function generateAcceptanceCode() {
             let code = '';
-            for (let i = 0; i < 3; i++) {
+            for (let i = 0; i < 4; i++) { // Changed to 4 digits for better security
                 code += Math.floor(Math.random() * 10);
             }
             return code;
@@ -1447,6 +1453,7 @@
         // Function to close modals
         function closeModal(modalId) {
             document.getElementById(modalId).style.display = 'none';
+            // Clear output messages
             if (modalId === 'addTeamModal') {
                 document.getElementById('addTeamOutput').textContent = '';
                 document.getElementById('acceptanceCodeInput').value = '';
@@ -1460,7 +1467,16 @@
                 document.getElementById('adminOptionTitle').textContent = 'Option Title';
             } else if (modalId === 'setTimeModal') {
                 document.getElementById('setTimeOutput').textContent = '';
+            } else if (modalId === 'resetModal') {
+                // No additional action needed
+            } else if (modalId === 'registrationRequestModal') {
+                // No additional action needed
             }
+        }
+
+        // Setup Team Interface on Page Load if Logged In
+        if (currentTeam && teams[currentTeam]) {
+            setupTeamInterface();
         }
 
     </script>
