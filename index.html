@@ -843,7 +843,7 @@
                         }
                         if (acceptanceCodeInput.value.trim() === request.acceptanceCode) {
                             const teamId = 'T' + new Date().getTime();
-
+                            outputDiv.textContent = 'Your Team has been Successfully Registered';
                             teams[teamId] = {
                                 teamName,
                                 names,
