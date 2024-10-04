@@ -926,4 +926,3 @@ function closeModal(modalId) {
 if (currentTeam && teams[currentTeam]) {
     setupTeamInterface();
 }
-
