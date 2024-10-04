@@ -843,7 +843,7 @@
                         }
                         if (acceptanceCodeInput.value.trim() === request.acceptanceCode) {
                             const teamId = 'T' + new Date().getTime();
-                            outputDiv.textContent = 'Your Team has been Successfully Registered';
+                            
                             teams[teamId] = {
                                 teamName,
                                 names,
@@ -858,20 +858,21 @@
                             teamScores[teamId] = 0;
                             submissionTimes[teamId] = null;
 
-                            firebase.database().ref('/teams/' + teamId).set(teams[teamId])
-                            firebase.database().ref('/teamSequences/' + teamId).set(teamSequences[teamId]);
-                            firebase.database().ref('/teamScores/' + teamId).set(teamScores[teamId]);
-                            firebase.database().ref('/submissionTimes/' + teamId).set(submissionTimes[teamId]);
+                            firebase.database().ref('/teams/' + teamId).set(teams[teamId]).then(() => {
+                                firebase.database().ref('/teamSequences/' + teamId).set(teamSequences[teamId]);
+                                firebase.database().ref('/teamScores/' + teamId).set(teamScores[teamId]);
+                                firebase.database().ref('/submissionTimes/' + teamId).set(submissionTimes[teamId]);
 
-                            delete registrationRequests[teamName];
-                            firebase.database().ref('/registrationRequests/' + teamName).remove();
+                                delete registrationRequests[teamName];
+                                firebase.database().ref('/registrationRequests/' + teamName).remove();
 
-                            outputDiv.textContent = 'You have registered successfully!';
-                            document.getElementById('teamForm').reset();
-                            initializeMemberInputs();
-                            document.getElementById('acceptanceCodeSection').style.display = 'none';
-                            displayRegistrationRequests();
-                        } else {
+                                outputDiv.textContent = 'You have registered successfully!';
+                                document.getElementById('teamForm').reset();
+                                initializeMemberInputs();
+                                document.getElementById('acceptanceCodeSection').style.display = 'none';
+                                displayRegistrationRequests();
+                            });
+                            else {
                             outputDiv.textContent = 'Invalid acceptance code.';
                         }
                     }
