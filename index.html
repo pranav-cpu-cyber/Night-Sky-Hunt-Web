@@ -678,7 +678,7 @@
         let registrationRequests = {};
         let eventStart = null;
         let eventEnd = null;
-        let currentTeam = null;
+        let currentTeam = localStorage.getItem('currentTeam') || null;
         let adminLoggedIn = false;
 
         const coordinates = {
@@ -739,23 +739,12 @@
                 eventStart = data?.eventStart ? parseInt(data.eventStart, 10) : null;
                 eventEnd = data?.eventEnd ? parseInt(data.eventEnd, 10) : null;
 
-                // If a team is currently logged in, update their score and question index
                 if (currentTeam && teams[currentTeam]) {
-                    document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScores[currentTeam] || 0} points`;
-                    const currentIndex = teams[currentTeam].currentQuestionIndex || 0;
-                    const sequence = teamSequences[currentTeam];
-                    if (currentIndex < sequence.length) {
-                        const currentQuestionNumber = sequence[currentIndex];
-                        const [x, y] = coordinates[currentQuestionNumber];
-                        document.getElementById('coordinateDisplay').textContent = `Your coordinates are: (${x}, ${y})`;
-                    } else {
-                        document.getElementById('coordinateDisplay').textContent = '';
-                    }
+                    setupTeamInterface();
                 }
 
-                // Update Leaderboard if Admin is viewing
                 if (adminLoggedIn) {
-                    // You can trigger leaderboard refresh here if needed
+                    // You can update admin dashboard if needed
                 }
             });
         }
@@ -932,14 +921,42 @@
 
                 if (found) {
                     currentTeam = teamIdFound;
+                    localStorage.setItem('currentTeam', currentTeam);
                     outputDiv.textContent = 'Login successful!';
                     document.getElementById('startHuntModal').style.display = 'none';
-                    document.getElementById('startHuntContainer').style.display = 'block';
                     document.getElementById('buttonContainer').style.display = 'none';
+
+                    if (teams[currentTeam].currentQuestionIndex !== undefined && teams[currentTeam].currentQuestionIndex !== null) {
+                        setupTeamInterface();
+                    } else {
+                        document.getElementById('startHuntContainer').style.display = 'block';
+                    }
                 } else {
                     outputDiv.textContent = 'Invalid team name or password.';
                 }
             });
+        }
+
+        // Setup Team Interface
+        function setupTeamInterface() {
+            document.getElementById('coordinateFinder').style.display = 'block';
+            document.getElementById('startHuntContainer').style.display = 'none';
+            document.getElementById('buttonContainer').style.display = 'none';
+
+            const sequence = teamSequences[currentTeam];
+            let currentIndex = teams[currentTeam].currentQuestionIndex || 0;
+
+            if (currentIndex < sequence.length) {
+                const currentQuestionNumber = sequence[currentIndex];
+                const [x, y] = coordinates[currentQuestionNumber];
+                document.getElementById('coordinateDisplay').textContent = `Your coordinates are: (${x}, ${y})`;
+            } else {
+                document.getElementById('coordinateDisplay').textContent = '';
+                alert("Congratulations! You have completed all questions!");
+            }
+
+            const teamScore = teamScores[currentTeam] || 0;
+            document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScore} points`;
         }
 
         // Start Hunt
@@ -960,13 +977,13 @@
                 document.getElementById('startHuntContainer').style.display = 'none';
                 document.getElementById('coordinateFinder').style.display = 'block';
 
-                const sequence = teamSequences[currentTeam];
                 let currentIndex = teams[currentTeam].currentQuestionIndex;
-
                 if (currentIndex === undefined || currentIndex === null) {
                     currentIndex = 0;
                     firebase.database().ref('/teams/' + currentTeam + '/currentQuestionIndex').set(currentIndex);
                 }
+
+                const sequence = teamSequences[currentTeam];
 
                 if (currentIndex < sequence.length) {
                     const currentQuestionNumber = sequence[currentIndex];
@@ -977,17 +994,19 @@
                     alert("Congratulations! You have completed all questions!");
                 }
 
-                // Display current score
                 firebase.database().ref('/teamScores/' + currentTeam).once('value').then((scoreSnapshot) => {
-                    teamScores = scoreSnapshot.val() || 0;
-                    document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScores} points`;
+                    const teamScore = scoreSnapshot.val() || 0;
+                    document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScore} points`;
                 });
+
+                teams[currentTeam].currentQuestionIndex = currentIndex;
             });
         }
 
         // Team Logout
         function teamLogout() {
             currentTeam = null;
+            localStorage.removeItem('currentTeam');
             document.getElementById('coordinateFinder').style.display = 'none';
             document.getElementById('buttonContainer').style.display = 'flex';
             document.getElementById('codeInput').value = '';
@@ -1060,10 +1079,10 @@
 
                 // Update team score
                 firebase.database().ref('/teamScores/' + currentTeam).once('value').then((scoreSnapshot) => {
-                    teamScores = scoreSnapshot.val() || 0;
-                    teamScores += 5;
-                    firebase.database().ref('/teamScores/' + currentTeam).set(teamScores);
-                    document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScores} points`;
+                    teamScores[currentTeam] = scoreSnapshot.val() || 0;
+                    teamScores[currentTeam] += 5;
+                    firebase.database().ref('/teamScores/' + currentTeam).set(teamScores[currentTeam]);
+                    document.getElementById('scoreDisplay').textContent = `Your current score: ${teamScores[currentTeam]} points`;
                 });
 
                 // Update submission time
@@ -1128,10 +1147,11 @@
 
                 let leaderboard = [];
 
-                for (let teamId in teamScores) {
+                for (let teamId in teams) {
                     leaderboard.push({
                         teamId,
-                        score: teamScores[teamId]
+                        teamName: teams[teamId].teamName,
+                        score: teamScores[teamId] || 0
                     });
                 }
 
@@ -1139,7 +1159,7 @@
 
                 let output = 'Leaderboard:\n\n';
                 leaderboard.forEach((entry, index) => {
-                    output += `${index + 1}. ${teams[entry.teamId]?.teamName || 'Unknown Team'} (${entry.teamId}) - ${entry.score} points\n`;
+                    output += `${index + 1}. ${entry.teamName} (${entry.teamId}) - ${entry.score} points\n`;
                 });
 
                 adminOptionTitle.textContent = 'Leaderboard';
@@ -1162,8 +1182,8 @@
 
                 let output = 'Team Question Sequences:\n\n';
 
-                for (let teamId in teamSequences) {
-                    output += `${teams[teamId]?.teamName || 'Unknown Team'} (${teamId}): ${teamSequences[teamId].join(', ')}\n`;
+                for (let teamId in teams) {
+                    output += `${teams[teamId]?.teamName || 'Unknown Team'} (${teamId}): ${teamSequences[teamId]?.join(', ') || 'No sequence assigned'}\n`;
                 }
 
                 adminOptionTitle.textContent = 'Team Question Sequences';
@@ -1186,7 +1206,7 @@
 
                 let output = 'Latest Submission Times:\n\n';
 
-                for (let teamId in submissionTimes) {
+                for (let teamId in teams) {
                     output += `${teams[teamId]?.teamName || 'Unknown Team'} (${teamId}): ${submissionTimes[teamId] || 'No submissions yet'}\n`;
                 }
 
@@ -1227,6 +1247,21 @@
         function openSetTimeModal() {
             if (!adminLoggedIn) return;
             document.getElementById('setTimeModal').style.display = 'block';
+            firebase.database().ref('/').once('value').then((snapshot) => {
+                const data = snapshot.val();
+                eventStart = data?.eventStart ? parseInt(data.eventStart, 10) : null;
+                eventEnd = data?.eventEnd ? parseInt(data.eventEnd, 10) : null;
+
+                if (eventStart) {
+                    const eventStartInput = document.getElementById('eventStartInput');
+                    eventStartInput.value = new Date(eventStart).toISOString().slice(0,16);
+                }
+
+                if (eventEnd) {
+                    const eventEndInput = document.getElementById('eventEndInput');
+                    eventEndInput.value = new Date(eventEnd).toISOString().slice(0,16);
+                }
+            });
         }
 
         // Set Event Time
@@ -1363,7 +1398,6 @@
                 status: 'approved',
                 acceptanceCode: code
             }).then(() => {
-                // Update the UI
                 const codeSpan = document.createElement('span');
                 codeSpan.innerHTML = `Acceptance Code: <span class="acceptance-code">${code}</span>`;
                 const parentDiv = buttonElement.parentElement;
@@ -1413,7 +1447,6 @@
         // Function to close modals
         function closeModal(modalId) {
             document.getElementById(modalId).style.display = 'none';
-            // Clear output messages
             if (modalId === 'addTeamModal') {
                 document.getElementById('addTeamOutput').textContent = '';
                 document.getElementById('acceptanceCodeInput').value = '';
@@ -1427,10 +1460,6 @@
                 document.getElementById('adminOptionTitle').textContent = 'Option Title';
             } else if (modalId === 'setTimeModal') {
                 document.getElementById('setTimeOutput').textContent = '';
-            } else if (modalId === 'resetModal') {
-                // No additional action needed
-            } else if (modalId === 'registrationRequestModal') {
-                // No additional action needed
             }
         }
 
