@@ -488,10 +488,15 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            margin-left: 5px;
+        }
+
+        .registration-request button.delete-button {
+            background-color: #dc3545;
         }
 
         .registration-request button:hover {
-            background-color: #5cb85c;
+            opacity: 0.8;
         }
 
         .acceptance-code {
@@ -531,9 +536,6 @@
                 <input type="text" id="teamName" placeholder="Enter Team Name" required>
                 <input type="email" id="teamLeaderEmail" placeholder="Enter Team Leader's Email" required>
                 <input type="password" id="teamPassword" placeholder="Create a Team Password" required>
-                <div id="acceptanceCodeSection" style="display: none;">
-                    <input type="text" id="acceptanceCodeInput" placeholder="Enter Acceptance Code" required>
-                </div>
                 <button type="button" onclick="registerTeam()">Register Team</button>
             </form>
             <div class="output" id="addTeamOutput"></div>
@@ -811,7 +813,6 @@
             const teamName = document.getElementById('teamName').value.trim();
             const teamLeaderEmail = document.getElementById('teamLeaderEmail').value.trim();
             const password = document.getElementById('teamPassword').value.trim();
-            const acceptanceCodeInput = document.getElementById('acceptanceCodeInput');
             const outputDiv = document.getElementById('addTeamOutput');
 
             if (names.includes('') || ids.includes('') || teamName === '' || password === '' || teamLeaderEmail === '') {
@@ -831,74 +832,29 @@
                     }
                 }
 
-                if (registrationRequests[teamName]) {
-                    const request = registrationRequests[teamName];
-                    if (request.status === 'pending') {
-                        outputDiv.textContent = 'Registration request is already pending approval.';
-                    } else if (request.status === 'approved') {
-                        document.getElementById('acceptanceCodeSection').style.display = 'block';
-                        if (acceptanceCodeInput.value.trim() === '') {
-                            outputDiv.textContent = 'Please enter the acceptance code provided by the admin.';
-                            return;
-                        }
-                        if (acceptanceCodeInput.value.trim() === request.acceptanceCode) {
-                            const teamId = 'T' + new Date().getTime();
-
-                            teams[teamId] = {
-                                teamName,
-                                names,
-                                ids,
-                                teamLeaderEmail,
-                                password,
-                                currentQuestionIndex: 0
-                            };
-
-                            teamSequences[teamId] = generateRandomSequence(20);
-
-                            teamScores[teamId] = 0;
-                            submissionTimes[teamId] = null;
-
-                            firebase.database().ref('/teams/' + teamId).set(teams[teamId]);
-                            firebase.database().ref('/teamSequences/' + teamId).set(teamSequences[teamId]);
-                            firebase.database().ref('/teamScores/' + teamId).set(teamScores[teamId]);
-                            firebase.database().ref('/submissionTimes/' + teamId).set(submissionTimes[teamId]);
-
-                            delete registrationRequests[teamName];
-                            firebase.database().ref('/registrationRequests/' + teamName).remove();
-
-                            outputDiv.textContent = 'Team registered successfully!';
-                            document.getElementById('teamForm').reset();
-                            initializeMemberInputs();
-                            document.getElementById('acceptanceCodeSection').style.display = 'none';
-                        } else {
-                            outputDiv.textContent = 'Invalid acceptance code.';
-                        }
+                for (let existingRequest in registrationRequests) {
+                    if (registrationRequests[existingRequest].teamName.toLowerCase() === teamName.toLowerCase()) {
+                        outputDiv.textContent = `Team name "${teamName}" has already requested registration.`;
+                        return;
                     }
-                } else {
-                    registrationRequests[teamName] = {
-                        teamName,
-                        names,
-                        ids,
-                        teamLeaderEmail,
-                        password,
-                        status: 'pending'
-                    };
-                    firebase.database().ref('/registrationRequests/' + teamName).set(registrationRequests[teamName]);
-                    outputDiv.textContent = 'Registration request submitted. Please wait for admin approval.';
-                    document.getElementById('teamForm').reset();
-                    initializeMemberInputs();
                 }
-            });
-        }
 
-        // Generate random sequence
-        function generateRandomSequence(n) {
-            const array = Array.from({length: n}, (_, index) => index + 1);
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
+                const requestId = 'R' + new Date().getTime();
+                registrationRequests[requestId] = {
+                    teamName,
+                    names,
+                    ids,
+                    teamLeaderEmail,
+                    password,
+                    status: 'pending'
+                };
+
+                firebase.database().ref('/registrationRequests/' + requestId).set(registrationRequests[requestId]);
+
+                outputDiv.textContent = 'Registration request submitted. Please wait for admin approval.';
+                document.getElementById('teamForm').reset();
+                initializeMemberInputs();
+            });
         }
 
         // Team Login
@@ -932,7 +888,23 @@
                         document.getElementById('startHuntContainer').style.display = 'block';
                     }
                 } else {
-                    outputDiv.textContent = 'Invalid team name or password.';
+                    // Check if the team is pending approval
+                    firebase.database().ref('/registrationRequests').once('value').then((snapshot) => {
+                        const requests = snapshot.val() || {};
+                        let pending = false;
+                        for (let requestId in requests) {
+                            const request = requests[requestId];
+                            if (request.teamName.toLowerCase() === teamName.toLowerCase() && request.password === password && request.status === 'pending') {
+                                pending = true;
+                                break;
+                            }
+                        }
+                        if (pending) {
+                            outputDiv.textContent = 'Your registration is pending approval. Please wait.';
+                        } else {
+                            outputDiv.textContent = 'Invalid team name or password.';
+                        }
+                    });
                 }
             });
         }
@@ -1364,25 +1336,27 @@
             firebase.database().ref('/registrationRequests').once('value').then((snapshot) => {
                 registrationRequests = snapshot.val() || {};
 
-                for (let teamName in registrationRequests) {
-                    const request = registrationRequests[teamName];
+                for (let requestId in registrationRequests) {
+                    const request = registrationRequests[requestId];
                     const requestDiv = document.createElement('div');
                     requestDiv.className = 'registration-request';
 
                     const teamInfo = document.createElement('span');
-                    teamInfo.textContent = `Team: ${teamName}, Members: ${request.names.join(', ')}`;
+                    teamInfo.textContent = `Team: ${request.teamName}, Members: ${request.names.join(', ')}`;
 
                     if (request.status === 'pending') {
-                        const acceptButton = document.createElement('button');
-                        acceptButton.textContent = 'Approve';
-                        acceptButton.onclick = () => acceptRegistrationRequest(teamName, acceptButton);
+                        const approveButton = document.createElement('button');
+                        approveButton.textContent = 'Approve';
+                        approveButton.onclick = () => approveRegistrationRequest(requestId, approveButton);
+
+                        const deleteButton = document.createElement('button');
+                        deleteButton.textContent = 'Delete';
+                        deleteButton.className = 'delete-button';
+                        deleteButton.onclick = () => deleteRegistrationRequest(requestId);
+
                         requestDiv.appendChild(teamInfo);
-                        requestDiv.appendChild(acceptButton);
-                    } else if (request.status === 'approved') {
-                        const codeSpan = document.createElement('span');
-                        codeSpan.innerHTML = `Acceptance Code: <span class="acceptance-code">${request.acceptanceCode}</span>`;
-                        requestDiv.appendChild(teamInfo);
-                        requestDiv.appendChild(codeSpan);
+                        requestDiv.appendChild(approveButton);
+                        requestDiv.appendChild(deleteButton);
                     }
 
                     requestsDiv.appendChild(requestDiv);
@@ -1394,31 +1368,51 @@
             });
         }
 
-        // Accept Registration Request
-        function acceptRegistrationRequest(teamName, buttonElement) {
-            const code = generateAcceptanceCode();
-            registrationRequests[teamName].status = 'approved';
-            registrationRequests[teamName].acceptanceCode = code;
-            firebase.database().ref('/registrationRequests/' + teamName).update({
-                status: 'approved',
-                acceptanceCode: code
-            }).then(() => {
-                // Update the UI
-                const codeSpan = document.createElement('span');
-                codeSpan.innerHTML = `Acceptance Code: <span class="acceptance-code">${code}</span>`;
-                const parentDiv = buttonElement.parentElement;
-                parentDiv.removeChild(buttonElement);
-                parentDiv.appendChild(codeSpan);
-            });
+        // Approve Registration Request
+        function approveRegistrationRequest(requestId, buttonElement) {
+            const request = registrationRequests[requestId];
+            const teamId = 'T' + new Date().getTime();
+
+            teams[teamId] = {
+                teamName: request.teamName,
+                names: request.names,
+                ids: request.ids,
+                teamLeaderEmail: request.teamLeaderEmail,
+                password: request.password,
+                currentQuestionIndex: 0
+            };
+
+            teamSequences[teamId] = generateRandomSequence(20);
+
+            teamScores[teamId] = 0;
+            submissionTimes[teamId] = null;
+
+            firebase.database().ref('/teams/' + teamId).set(teams[teamId]);
+            firebase.database().ref('/teamSequences/' + teamId).set(teamSequences[teamId]);
+            firebase.database().ref('/teamScores/' + teamId).set(teamScores[teamId]);
+            firebase.database().ref('/submissionTimes/' + teamId).set(submissionTimes[teamId]);
+
+            delete registrationRequests[requestId];
+            firebase.database().ref('/registrationRequests/' + requestId).remove();
+
+            displayRegistrationRequests();
         }
 
-        // Generate Acceptance Code
-        function generateAcceptanceCode() {
-            let code = '';
-            for (let i = 0; i < 4; i++) { // Changed to 4 digits for better security
-                code += Math.floor(Math.random() * 10);
+        // Delete Registration Request
+        function deleteRegistrationRequest(requestId) {
+            delete registrationRequests[requestId];
+            firebase.database().ref('/registrationRequests/' + requestId).remove();
+            displayRegistrationRequests();
+        }
+
+        // Generate random sequence
+        function generateRandomSequence(n) {
+            const array = Array.from({length: n}, (_, index) => index + 1);
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
             }
-            return code;
+            return array;
         }
 
         // Handle event end
@@ -1456,8 +1450,6 @@
             // Clear output messages
             if (modalId === 'addTeamModal') {
                 document.getElementById('addTeamOutput').textContent = '';
-                document.getElementById('acceptanceCodeInput').value = '';
-                document.getElementById('acceptanceCodeSection').style.display = 'none';
             } else if (modalId === 'startHuntModal') {
                 document.getElementById('startHuntOutput').textContent = '';
             } else if (modalId === 'adminLoginModal') {
