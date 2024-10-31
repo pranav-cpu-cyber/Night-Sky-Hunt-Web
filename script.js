@@ -1,13 +1,6 @@
 // Firebase Configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyCyVBia-bsTSwZSmGrztGGeyGvbk-3vGUM",
-    authDomain: "night-sky-hunt-af24d.firebaseapp.com",
-    databaseURL: "https://night-sky-hunt-af24d-default-rtdb.firebaseio.com",
-    projectId: "night-sky-hunt-af24d",
-    storageBucket: "night-sky-hunt-af24d.appspot.com",
-    messagingSenderId: "649615581460",
-    appId: "1:649615581460:web:13d2c0d15161e1ef43e201",
-    measurementId: "G-YBD7B53TJJ"
+    //type your firebase credentials here.
 };
 
 // Initialize Firebase
