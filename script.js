@@ -1,6 +1,12 @@
 // Firebase Configuration
 const firebaseConfig = {
-    //type your firebase credentials here.
+  apiKey: "AIzaSyBUkBlbd6-AA3PVVdyRCara_n2oyouusOc",
+  authDomain: "night-e9f6e.firebaseapp.com",
+  projectId: "night-e9f6e",
+  storageBucket: "night-e9f6e.firebasestorage.app",
+  messagingSenderId: "459241713127",
+  appId: "1:459241713127:web:be24db4ace2863ab34a142",
+  measurementId: "G-9FPWGN53TM"
 };
 
 // Initialize Firebase
