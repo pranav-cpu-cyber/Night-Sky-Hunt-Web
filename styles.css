@@ -1,150 +1,527 @@
-/* =========================
-Night Sky Hunt - styles.css
-========================= */
-
+/* Reset default browser styles */
 * {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  }
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
+/* Set body styles with dark background */
 body {
-background: radial-gradient(circle at top, #0d0d2b, #000);
-color: #fff;
-min-height: 100vh;
-display: flex;
-flex-direction: column;
+    font-family: 'Arial', sans-serif;
+    background-color: #000;
+    color: #fff;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
-header {
-background: rgba(0, 0, 0, 0.6);
-padding: 1rem;
-text-align: center;
-border-bottom: 1px solid #333;
+/* Starfield container */
+.starfield {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    overflow: hidden;
+    top: 0;
+    left: 0;
+    z-index: -1;
 }
 
-header h1 {
-font-size: 2rem;
-margin-bottom: 0.5rem;
+/* Keyframes for star animation */
+@keyframes twinkle {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 0.2; }
 }
 
-nav {
-display: flex;
-justify-content: center;
-gap: 1rem;
+/* Generate stars */
+.star {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    opacity: 0;
+    animation: twinkle 2s infinite;
 }
 
-.nav-btn {
-background: #1a1a40;
-color: #fff;
-border: 1px solid #555;
-padding: 0.5rem 1rem;
-cursor: pointer;
-border-radius: 4px;
-transition: background 0.3s;
+/* Title styling with vibrant gradient and 3D effect */
+.title {
+    font-family: 'Orbitron', sans-serif;
+    text-align: center;
+    font-size: 3em;
+    background: linear-gradient(45deg, #ff8a00, #e52e71, #9b00ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    position: relative;
+    display: inline-block;
+    animation: float 3s ease-in-out infinite;
+    margin-bottom: 20px;
 }
 
-.nav-btn:hover {
-background: #3b3bb3;
+/* Floating Animation for Title */
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
 }
 
-main {
-flex: 1;
-padding: 2rem;
-display: flex;
-justify-content: center;
-align-items: flex-start;
+/* Button Container */
+.button-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 30px;
+    flex-wrap: wrap;
 }
 
-.page {
-display: none;
-max-width: 500px;
-width: 100%;
-background: rgba(255, 255, 255, 0.05);
-padding: 1.5rem;
-border-radius: 8px;
-box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+/* Main Button styling */
+.main-button {
+    background-color: #1e90ff;
+    color: white;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.2em;
+    transition: background-color 0.3s ease, transform 0.2s;
 }
 
-.page.active {
-display: block;
+.main-button:hover {
+    background-color: #63b3ff;
+    transform: scale(1.05);
 }
 
-form {
-display: flex;
-flex-direction: column;
-gap: 1rem;
+/* Modal styling */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    background-color: rgba(0,0,0,0.9);
 }
 
-label {
-display: flex;
-flex-direction: column;
-font-size: 0.9rem;
+.modal-content {
+    background-color: rgba(0, 0, 0, 0.6);
+    margin: 5% auto;
+    padding: 30px;
+    border: 2px solid #fff;
+    width: 90%;
+    max-width: 600px;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    color: #fff;
 }
 
-input {
-padding: 0.5rem;
-border: none;
-border-radius: 4px;
-margin-top: 0.25rem;
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
 }
 
-button {
-background: #3b3bb3;
-color: white;
-border: none;
-padding: 0.6rem 1rem;
-border-radius: 4px;
-cursor: pointer;
-transition: background 0.3s;
+.close:hover, .close:focus {
+    color: #fff;
+    text-decoration: none;
+    cursor: pointer;
 }
 
-button:hover {
-background: #5757d1;
+/* Form styling inside modals */
+.modal-content input[type="text"],
+.modal-content input[type="password"],
+.modal-content input[type="number"],
+.modal-content input[type="email"],
+.modal-content input[type="datetime-local"] {
+    width: 100%;
+    padding: 15px 20px;
+    margin: 10px 0;
+    box-sizing: border-box;
+    border: none;
+    border-radius: 5px;
+    font-size: 1.2em;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
 }
 
-#coordResult, #teamRegMsg, #teamLoginMsg, #adminLoginMsg {
-margin-top: 1rem;
-text-align: center;
-font-weight: bold;
+.modal-content input::placeholder {
+    color: #ccc;
 }
 
-ul {
-list-style: none;
-margin-top: 0.5rem;
+.modal-content button {
+    width: 100%;
+    background-color: #1e90ff;
+    color: white;
+    padding: 15px 20px;
+    margin: 10px 0;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.2em;
+    transition: background-color 0.3s ease, transform 0.2s;
 }
 
-ul li {
-background: rgba(255, 255, 255, 0.1);
-padding: 0.5rem;
-margin-bottom: 0.5rem;
-display: flex;
-justify-content: space-between;
-align-items: center;
-border-radius: 4px;
+.modal-content button:hover {
+    background-color: #63b3ff;
+    transform: scale(1.05);
 }
 
-ul li button {
-background: #1a1a40;
-padding: 0.3rem 0.6rem;
-font-size: 0.8rem;
+.modal-content h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 2em;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
 }
 
-footer {
-text-align: center;
-padding: 1rem;
-background: rgba(0, 0, 0, 0.6);
-border-top: 1px solid #333;
+.modal-content .output {
+    margin-top: 20px;
+    font-size: 1.2em;
+    text-align: center;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
 }
 
+/* Coordinate Finder styling */
+.container {
+    background-color: rgba(0, 0, 0, 0.6);
+    padding: 30px;
+    border-radius: 10px;
+    border: 2px solid #fff;
+    max-width: 500px;
+    margin: 20px auto;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    display: none;
+}
+
+.container button.logout-button {
+    background-color: #ff4d4d;
+}
+
+/* Admin Dashboard styling */
+.admin-dashboard {
+    background-color: rgba(0, 0, 0, 0.6);
+    padding: 30px;
+    border-radius: 10px;
+    border: 2px solid #fff;
+    max-width: 600px;
+    margin: 20px auto;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    display: none;
+}
+
+.admin-dashboard h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 2em;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.admin-dashboard button {
+    width: 100%;
+    background-color: #1e90ff;
+    color: white;
+    padding: 15px 20px;
+    margin: 10px 0;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.2em;
+    transition: background-color 0.3s ease, transform 0.2s;
+}
+
+.admin-dashboard button:hover {
+    background-color: #63b3ff;
+    transform: scale(1.05);
+}
+
+.admin-dashboard button.reset-button {
+    background-color: #ff4d4d;
+}
+
+.admin-dashboard button.reset-button:hover {
+    background-color: #ff8080;
+}
+
+.admin-output {
+    margin-top: 20px;
+    font-size: 1em;
+    color: #fff;
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
+
+/* Responsive design */
 @media (max-width: 600px) {
-.nav-btn {
-padding: 0.4rem 0.8rem;
-font-size: 0.9rem;
+    .title {
+        font-size: 2em;
+        margin-top: 30px;
+    }
+
+    .modal-content h2, .container h2, .admin-dashboard h2 {
+        font-size: 1.5em;
+    }
+
+    .main-button, .modal-content button, .admin-dashboard button {
+        font-size: 1em;
+        padding: 10px 15px;
+    }
+
+    .modal-content input[type="text"],
+    .modal-content input[type="password"],
+    .modal-content input[type="number"],
+    .modal-content input[type="email"],
+    .modal-content input[type="datetime-local"] {
+        font-size: 1em;
+        padding: 10px 15px;
+    }
+
+    .modal-content .output, .admin-output {
+        font-size: 1em;
+    }
 }
 
-main {
-padding: 1rem;
+/* Floating Admin Option Modals */
+.admin-option-modal {
+    display: none;
+    position: fixed;
+    z-index: 1500;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    max-width: 500px;
+    background-color: rgba(0, 0, 0, 0.8);
+    border: 2px solid #fff;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(5px);
 }
+
+.admin-option-modal .close {
+    float: right;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.admin-option-modal .close:hover {
+    color: #fff;
+}
+
+.admin-option-modal h3 {
+    margin-bottom: 15px;
+    text-align: center;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.admin-option-modal pre {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 10px;
+    border-radius: 5px;
+    overflow-x: auto;
+    max-height: 300px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Reset Confirmation Modal */
+.reset-modal {
+    display: none;
+    position: fixed;
+    z-index: 1600;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    max-width: 400px;
+    background-color: rgba(0, 0, 0, 0.9);
+    border: 2px solid #fff;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(5px);
+    color: #fff;
+    text-align: center;
+}
+
+.reset-modal .close {
+    float: right;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.reset-modal .close:hover {
+    color: #fff;
+}
+
+.reset-modal h3 {
+    margin-bottom: 15px;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.reset-modal button {
+    width: 45%;
+    background-color: #ff4d4d;
+    color: white;
+    padding: 10px 0;
+    margin: 10px 5%;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease, transform 0.2s;
+}
+
+.reset-modal button:hover {
+    background-color: #ff8080;
+    transform: scale(1.05);
+}
+
+/* Set Time Modal */
+.set-time-modal {
+    display: none;
+    position: fixed;
+    z-index: 1500;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 500px;
+    background-color: rgba(0, 0, 0, 0.8);
+    border: 2px solid #fff;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(5px);
+}
+
+.set-time-modal .close {
+    float: right;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.set-time-modal .close:hover {
+    color: #fff;
+}
+
+.set-time-modal h3 {
+    margin-bottom: 15px;
+    text-align: center;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.set-time-modal label {
+    display: block;
+    margin: 10px 0 5px;
+    text-align: left;
+    font-size: 1em;
+}
+
+.set-time-modal input[type="datetime-local"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: none;
+    border-radius: 5px;
+    font-size: 1em;
+}
+
+.set-time-modal button {
+    width: 100%;
+    background-color: #1e90ff;
+    color: white;
+    padding: 10px 0;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease, transform 0.2s;
+}
+
+.set-time-modal button:hover {
+    background-color: #63b3ff;
+    transform: scale(1.05);
+}
+
+.set-time-modal .output {
+    margin-top: 10px;
+    font-size: 1em;
+    text-align: center;
+    color: #ffcc00;
+}
+
+/* Additional styles for registration requests */
+.registration-request {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+}
+
+.registration-request button {
+    background-color: #28a745;
+    color: white;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-left: 5px;
+}
+
+.registration-request button.delete-button {
+    background-color: #dc3545;
+}
+
+.registration-request button:hover {
+    opacity: 0.8;
+}
+
+.acceptance-code {
+    font-weight: bold;
+    color: #ffcc00;
+}
+
+/* Member Buttons within Add Team Modal */
+.member-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.member-buttons button {
+    flex: 1;
+    background-color: #1e90ff;
+    color: white;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease, transform 0.2s;
+}
+
+.member-buttons button:hover {
+    background-color: #63b3ff;
+    transform: scale(1.05);
+}
+
+/* Start Hunt Container */
+.start-hunt-container {
+    display: none;
+    margin-top: 20px;
 }
