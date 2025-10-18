@@ -1,106 +1,149 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Night Sky Hunt</title>
-  <link rel="stylesheet" href="styles.css" />
+    <meta charset="UTF-8">
+    <title>Night Sky Hunt</title>
+    <!-- Google Font for Stylish Title -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <!-- Link to External CSS -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header>
-    <h1>🌌 Night Sky Hunt</h1>
-    <nav>
-      <button id="homeBtn" class="nav-btn">Home</button>
-      <button id="teamRegBtn" class="nav-btn">Team Registration</button>
-      <button id="teamLoginBtn" class="nav-btn">Team Login</button>
-      <button id="adminLoginBtn" class="nav-btn">Admin Login</button>
-    </nav>
-  </header>
 
-  <main>
-    <!-- Home Page -->
-    <section id="homePage" class="page active">
-      <h2>Welcome to the Night Sky Hunt</h2>
-      <p>Choose your login option to begin.</p>
-    </section>
+    <!-- Starfield Background -->
+    <div class="starfield" id="starfield"></div>
 
-```
-<!-- Team Registration -->
-<section id="teamRegPage" class="page">
-  <h2>Team Registration</h2>
-  <form id="teamRegForm">
-    <label>Team Name:<input type="text" id="teamName" required /></label>
-    <label>Player 1:<input type="text" class="playerName" required /></label>
-    <label>Player 2:<input type="text" class="playerName" /></label>
-    <label>Player 3:<input type="text" class="playerName" /></label>
-    <label>Player 4:<input type="text" class="playerName" /></label>
-    <button type="submit">Register</button>
-  </form>
-  <div id="teamRegMsg"></div>
-</section>
+    <!-- Title -->
+    <div class="title">Night Sky Hunt</div>
 
-<!-- Team Login -->
-<section id="teamLoginPage" class="page">
-  <h2>Team Login</h2>
-  <form id="teamLoginForm">
-    <label>Team Number:<input type="number" id="loginTeamNumber" required /></label>
-    <button type="submit">Login</button>
-  </form>
-  <div id="teamLoginMsg"></div>
-</section>
+    <!-- Button Container -->
+    <div class="button-container" id="buttonContainer">
+        <button class="main-button" onclick="openAddTeamModal()">Register Team</button>
+        <button class="main-button" onclick="openStartHuntModal()">Team Login</button>
+        <button class="main-button" onclick="openAdminLoginModal()">Admin Login</button>
+    </div>
 
-<!-- Team Dashboard -->
-<section id="teamDashboard" class="page">
-  <h2 id="teamWelcome"></h2>
-  <p>Enter your question code below to get the next coordinates.</p>
-  <form id="coordForm">
-    <label>4-Digit Question Code:<input type="text" id="questionCode" maxlength="4" required /></label>
-    <button type="submit">Get Coordinates</button>
-  </form>
-  <div id="coordResult"></div>
-</section>
+    <!-- Add Team Modal -->
+    <div id="addTeamModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addTeamModal')">&times;</span>
+            <h2>Register Your Team</h2>
+            <form id="teamForm">
+                <div id="memberInputs">
+                    <!-- Member inputs will be added here -->
+                </div>
+                <div class="member-buttons">
+                    <button type="button" onclick="addMember()">Add Member</button>
+                    <button type="button" onclick="removeMember()">Remove Member</button>
+                </div>
+                <input type="text" id="teamName" placeholder="Enter Team Name" required>
+                <input type="email" id="teamLeaderEmail" placeholder="Enter Team Leader's Email" required>
+                <input type="password" id="teamPassword" placeholder="Create a Team Password" required>
+                <button type="button" onclick="registerTeam()">Register Team</button>
+            </form>
+            <div class="output" id="addTeamOutput"></div>
+        </div>
+    </div>
 
-<!-- Admin Login -->
-<section id="adminLoginPage" class="page">
-  <h2>Admin Login</h2>
-  <form id="adminLoginForm">
-    <label>Password:<input type="password" id="adminPassword" required /></label>
-    <button type="submit">Login</button>
-  </form>
-  <div id="adminLoginMsg"></div>
-</section>
+    <!-- Team Login Modal -->
+    <div id="startHuntModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('startHuntModal')">&times;</span>
+            <h2>Team Login</h2>
+            <input type="text" id="teamNameLogin" placeholder="Enter Your Team Name" required>
+            <input type="password" id="teamPasswordLogin" placeholder="Enter Team Password" required>
+            <button type="button" onclick="teamLogin()">Login</button>
+            <div class="output" id="startHuntOutput"></div>
+        </div>
+    </div>
 
-<!-- Admin Dashboard -->
-<section id="adminDashboard" class="page">
-  <h2>Admin Dashboard</h2>
-  <h3>Pending Registrations</h3>
-  <ul id="pendingTeams"></ul>
+    <!-- Start Hunt Button Container -->
+    <div id="startHuntContainer" class="start-hunt-container">
+        <button class="main-button" onclick="startHunt()">Start Hunt</button>
+        <button class="main-button logout-button" onclick="teamLogout()">Logout</button>
+    </div>
 
-  <h3>Approved Teams</h3>
-  <ul id="approvedTeams"></ul>
+    <!-- Coordinate Finder Container -->
+    <div class="container" id="coordinateFinder">
+        <h2>Enter Your 6-Digit Code</h2>
+        <div id="coordinateDisplay"></div>
+        <input type="text" id="codeInput" placeholder="Enter your code here..." maxlength="6">
+        <button onclick="getNextCoordinates()">Submit</button>
+        <div class="output" id="output"></div>
+        <div class="output" id="scoreDisplay"></div>
+        <button class="main-button logout-button" onclick="teamLogout()">Logout</button>
+    </div>
 
-  <h3>Questions & Coordinates</h3>
-  <form id="questionForm">
-    <label>Question ID:<input type="number" id="qID" required /></label>
-    <label>Question Code:<input type="text" id="qCode" required /></label>
-    <label>Coordinates:<input type="text" id="qCoords" required /></label>
-    <button type="submit">Add/Update</button>
-  </form>
-  <ul id="questionList"></ul>
+    <!-- Admin Login Modal -->
+    <div id="adminLoginModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('adminLoginModal')">&times;</span>
+            <h2>Admin Login</h2>
+            <input type="password" id="adminPassword" placeholder="Enter Admin Password" required>
+            <button type="button" onclick="adminLogin()">Login</button>
+            <div class="output" id="adminLoginOutput"></div>
+        </div>
+    </div>
 
-  <button id="resetEvent">Reset Event</button>
-  <button id="logoutAdmin">Logout</button>
-</section>
-```
+    <!-- Admin Dashboard -->
+    <div class="admin-dashboard" id="adminDashboard">
+        <h2>Admin Dashboard</h2>
+        <button onclick="openAdminOptionModal('leaderboard')">Leaderboard</button>
+        <button onclick="openAdminOptionModal('teamSequences')">Team Question Sequences</button>
+        <button onclick="openAdminOptionModal('submissionTimes')">Submission Times</button>
+        <button onclick="openRegistrationRequestsModal()">Registration Requests</button>
+        <button onclick="openSetTimeModal()">Set Event Time</button>
+        <button class="reset-button" onclick="resetEvent()">Reset Event</button>
+        <button class="main-button logout-button" onclick="adminLogout()">Logout</button>
+    </div>
 
-  </main>
+    <!-- Admin Option Modal -->
+    <div id="adminOptionModal" class="admin-option-modal">
+        <span class="close" onclick="closeAdminOptionModal()">&times;</span>
+        <h3 id="adminOptionTitle">Option Title</h3>
+        <pre id="adminOptionContent">Option Content</pre>
+    </div>
 
-  <footer>
-    <p>© 2025 Night Sky Hunt</p>
-  </footer>
+    <!-- Registration Request Modal -->
+    <div id="registrationRequestModal" class="admin-option-modal">
+        <span class="close" onclick="closeModal('registrationRequestModal')">&times;</span>
+        <h3>Registration Requests</h3>
+        <div id="registrationRequestsContent">
+            <!-- Registration requests will be displayed here -->
+        </div>
+    </div>
 
-  <script src="script.js"></script>
+    <!-- Reset Confirmation Modal -->
+    <div id="resetModal" class="reset-modal">
+        <span class="close" onclick="closeModal('resetModal')">&times;</span>
+        <h3>Confirm Reset</h3>
+        <p>Are you sure you want to reset the event? This will remove all data.</p>
+        <div>
+            <button onclick="confirmResetEvent()">Yes, Reset</button>
+            <button onclick="closeModal('resetModal')">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Set Time Modal -->
+    <div id="setTimeModal" class="set-time-modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('setTimeModal')">&times;</span>
+            <h2>Set Event Time</h2>
+            <label for="eventStartInput">Event Start Time:</label>
+            <input type="datetime-local" id="eventStartInput">
+            <label for="eventEndInput">Event End Time:</label>
+            <input type="datetime-local" id="eventEndInput">
+            <button type="button" onclick="setEventTime()">Set Time</button>
+            <div class="output" id="setTimeOutput"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <!-- Link to External JavaScript -->
+    <script src="script.js"></script>
 
 </body>
 </html>
